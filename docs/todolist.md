@@ -91,3 +91,44 @@
 | 6️⃣ | 实验对比        | 插值、补全、消融分析           |
 
 ---
+
+
+```txt
+【原始 Shape（mesh/point cloud）】
+           │
+           ▼
+  [数据预处理模块]
+   (voxelize / SDF)
+           │
+           ▼
+  【Voxel Grid or SDF】
+           │
+           ▼
+  [Shape Tokenizer 模块（VQ-VAE）]
+    ├── encoder → codebook → token index grid
+    └── decoder ← token index grid
+           │
+           ▼
+   【Token Grid（如 8×8×8）】
+           │
+           ▼
+ [Transformer 模块（Shape Prior）]
+    ├── 学习 token 序列的分布
+    └── 可用于补全 / 生成 / 插值
+           │
+           ▼
+ 【预测出的 token grid】
+           │
+           ▼
+ [Shape Decoder（复用 tokenizer decoder）]
+           │
+           ▼
+  【生成的 Voxel / SDF】
+           │
+           ▼
+ [可视化 / 评估模块]
+   ├── Chamfer Distance
+   ├── FID
+   └── IoU, F-score
+
+```
