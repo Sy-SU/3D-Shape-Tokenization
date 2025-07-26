@@ -64,8 +64,28 @@ class PointFeatureProjector(nn.Module):
             raise ValueError(f"Expected input of shape [n, in_dim], but got {x.shape}")
         return self.linear(x)
 
+# ========== RMS-Norm ==========
+
+
+class RMSNorm(nn.Module):
+    """
+    Root Mean Square Normalization
+    输入: Tensor[..., d]
+    输出: 同形状张量，乘以可学习缩放因子
+    """
+    def __init__(self, dim: int, eps: float = 1e-6):
+        super().__init__()
+        self.eps = eps
+        self.weight = nn.Parameter(torch.ones(dim))
+
+    def _norm(self, x):
+        return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
+
+    def forward(self, x):
+        return self._norm(x.float()).type_as(x) * self.weight
 
 # ========== Unit Test ==========
+
 
 if __name__ == '__main__':
     # ========== Unit Test of Positional Encoding Modules ==========
