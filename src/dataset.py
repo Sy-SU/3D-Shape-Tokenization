@@ -13,7 +13,7 @@ for pts, lbl in dataloader:
     print(pts.shape)  # [16, N, 3]
     print(lbl)
     break
-    
+
 似乎不需要，PC15k里面的数据就是 npy 的格式
 可以注意一下需不需要完成label的映射
 tokenizer里面需要dataloader，具体的抽样方式看原论文5.1部分
@@ -54,7 +54,8 @@ class ShapeNetDataset(Dataset):
                     self.data.append((file_path, label_name))
 
         if not self.data:
-            raise RuntimeError(f"No .npy files found under split '{split}' in {root}")
+            raise RuntimeError(
+                f"No .npy files found under split '{split}' in {root}")
 
     def __len__(self):
         return len(self.data)
