@@ -1,9 +1,14 @@
-# utils/velocity_estimator.py
+# models/velocity_estimator.py
 
+import os
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import FourierPositionalEncoding3D, RMSNorm
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from utils import FourierPositionalEncoding3D, PointFeatureProjector, RMSNorm
 
 # ========== Cross Attention Block for Shape Tokenizer ==========
 

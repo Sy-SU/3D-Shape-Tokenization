@@ -1,8 +1,13 @@
-# utils/shape_tokenizer.py
+# models/shape_tokenizer.py
 
+import os
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from utils import FourierPositionalEncoding3D, PointFeatureProjector, RMSNorm
 
 # ========== Cross Attention Block for Shape Tokenizer ==========
