@@ -1,9 +1,9 @@
 # eval.py
 
 import torch
-from utils.shape_tokenizer import ShapeTokenizer
-from utils.velocity_estimator import VelocityEstimator
-from utils.dataloader import get_dataloader
+from models.shape_tokenizer import ShapeTokenizer
+from models.velocity_estimator import VelocityEstimator
+from datasets.dataloader import get_dataloader
 import open3d as o3d
 
 
