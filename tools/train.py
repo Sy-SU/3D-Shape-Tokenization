@@ -53,9 +53,7 @@ def run_one_epoch(tokenizer: ShapeTokenizer,
         B, N, _ = pointclouds.shape
 
         # Step 2: 获取每个样本的 latent shape token (Tensor[B, K, D])
-        # 注意：tokenizer 接收单个点云，因此逐个处理
-        token_list = [tokenizer(pointclouds[i]) for i in range(B)]
-        shape_tokens = torch.stack(token_list, dim=0)
+        shape_tokens = tokenizer(pointclouds)
 
         # Step 3: 构造每个样本的 (x0, x1, t) 并计算中间点 x_t
         # x0: 噪声点 ∈ Uniform([-1, 1]^3), shape: [B, 3]
@@ -71,17 +69,18 @@ def run_one_epoch(tokenizer: ShapeTokenizer,
         target_v = x1 - x0
         loss_flow = nn.functional.mse_loss(v_pred, target_v)
 
-        # Step 6: 一致性 KL 散度项 KL(q(s\|Y) \|\| q(s\|Z))
         # 为此我们需要再次采样一组子点云 Z
-        token_list_z = []
-        for i in range(B):
-            idx_z = torch.randperm(N)[:min(1024, N)]
-            p = pointclouds[i][idx_z]
-            token_list_z.append(tokenizer(p))
-        shape_tokens_z = torch.stack(token_list_z, dim=0)
+        # Step 6: 一致性 KL 散度项 KL(q(s|Y) || q(s|Z))
+        num_subpoints = min(1024, N)
+        idx_z = torch.randint(0, N, (B, num_subpoints), device=device)  # [B, 1024]
+        subpoints_z = torch.gather(
+            pointclouds, 1,
+            idx_z.unsqueeze(-1).expand(-1, -1, 3)
+        )  # [B, 1024, 3]
+        shape_tokens_z = tokenizer(subpoints_z)  # [B, K, D]
 
-        mu_y = shape_tokens.mean(dim=1)
-        mu_z = shape_tokens_z.mean(dim=1)
+        mu_y = shape_tokens.mean(dim=1)         # [B, D]
+        mu_z = shape_tokens_z.mean(dim=1)       # [B, D]
         sigma = 1e-3
         loss_kl = (1.0 / (2 * sigma ** 2)) * ((mu_y - mu_z) ** 2).sum(dim=1).mean()
 

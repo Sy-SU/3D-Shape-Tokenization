@@ -18,10 +18,10 @@ class CrossAttentionBlock(nn.Module):
     实现 shape tokenizer 中的 Cross Attention 模块。
 
     输入:
-        query_tokens: Tensor[k, d_f]，可学习的初始 token
-        point_features: Tensor[n, d_f]，位置编码并投影后的点云特征
+        query_tokens: Tensor[B, k, d_f]，可学习的初始 token
+        point_features: Tensor[B, n, d_f]，位置编码并投影后的点云特征
     输出:
-        attended_tokens: Tensor[k, d_f]，聚合了点云信息的 token 表示
+        attended_tokens: Tensor[B, k, d_f]，聚合了点云信息的 token 表示
 
     架构:
         - LayerNorm (query / key-value 分开)
@@ -66,13 +66,13 @@ class CrossAttentionBlock(nn.Module):
     def forward(self, query_tokens, point_features):
         """
         参数:
-            query_tokens: Tensor[k, d_f]
-            point_features: Tensor[n, d_f]
+            query_tokens: Tensor[B, k, d_f]
+            point_features: Tensor[B, n, d_f]
         返回:
-            Tensor[k, d_f]
+            Tensor[B, k, d_f]
         """
-        k_token, d_f = query_tokens.shape
-        n_point, _ = point_features.shape
+        B, k_token, d_f = query_tokens.shape
+        _, n_point, _ = point_features.shape
 
         # LayerNorm
         q_input = self.layernorm_q(query_tokens)
@@ -88,17 +88,17 @@ class CrossAttentionBlock(nn.Module):
         k_proj = self.rmsnorm_k(k_proj)
 
         # Reshape for multi-head attention
-        q_proj = q_proj.view(k_token, self.n_heads, self.head_dim).transpose(0, 1)  # [h, k, d_h]
-        k_proj = k_proj.view(n_point, self.n_heads, self.head_dim).transpose(0, 1)  # [h, n, d_h]
-        v_proj = v_proj.view(n_point, self.n_heads, self.head_dim).transpose(0, 1)  # [h, n, d_h]
+        q_proj = q_proj.view(B, k_token, self.n_heads, self.head_dim).transpose(1, 2)  # [B, h, k, d_h]
+        k_proj = k_proj.view(B, n_point, self.n_heads, self.head_dim).transpose(1, 2)  # [B, h, n, d_h]
+        v_proj = v_proj.view(B, n_point, self.n_heads, self.head_dim).transpose(1, 2)  # [B, h, n, d_h]
 
         # Scaled dot-product attention
-        scores = torch.matmul(q_proj, k_proj.transpose(-2, -1)) / (self.head_dim ** 0.5)  # [h, k, n]
-        attn = torch.softmax(scores, dim=-1)  # [h, k, n]
-        out = torch.matmul(attn, v_proj)  # [h, k, d_h]
+        scores = torch.matmul(q_proj, k_proj.transpose(-2, -1)) / (self.head_dim ** 0.5)  # [B, h, k, n]
+        attn = torch.softmax(scores, dim=-1)  # [B, h, k, n]
+        out = torch.matmul(attn, v_proj)  # [B, h, k, d_h]
 
         # 合并多头输出
-        out = out.transpose(0, 1).contiguous().view(k_token, d_f)  # [k, d_f]
+        out = out.transpose(1, 2).contiguous().view(B, k_token, d_f)  # [B, k, d_f]
 
         # Residual 1: attention + query_tokens
         out = self.linear_o(out) + query_tokens
@@ -117,9 +117,9 @@ class SelfAttentionBlock(nn.Module):
     实现 shape tokenizer 中的 Self Attention 模块（重复 2 次）。
 
     输入:
-        tokens: Tensor[k, d_f]，跨 token 的上下文建模
+        tokens: Tensor[B, k, d_f]，跨 token 的上下文建模
     输出:
-        tokens: Tensor[k, d_f]，融合上下文信息的 token 表示
+        tokens: Tensor[B, k, d_f]，融合上下文信息的 token 表示
 
     架构:
         - LayerNorm
@@ -163,11 +163,11 @@ class SelfAttentionBlock(nn.Module):
     def forward(self, tokens):
         """
         参数:
-            tokens: Tensor[k, d_f]
+            tokens: Tensor[B, k, d_f]
         返回:
-            Tensor[k, d_f]
+            Tensor[B, k, d_f]
         """
-        k_token, d_f = tokens.shape
+        B, k_token, d_f = tokens.shape
 
         # LayerNorm
         x_norm = self.layernorm(tokens)
@@ -182,17 +182,17 @@ class SelfAttentionBlock(nn.Module):
         k_proj = self.rmsnorm_k(k_proj)
 
         # Multi-head attention reshape
-        q_proj = q_proj.view(k_token, self.n_heads, self.head_dim).transpose(0, 1)  # [h, k, d_h]
-        k_proj = k_proj.view(k_token, self.n_heads, self.head_dim).transpose(0, 1)  # [h, k, d_h]
-        v_proj = v_proj.view(k_token, self.n_heads, self.head_dim).transpose(0, 1)  # [h, k, d_h]
+        q_proj = q_proj.view(B, k_token, self.n_heads, self.head_dim).transpose(1, 2)  # [B, h, k, d_h]
+        k_proj = k_proj.view(B, k_token, self.n_heads, self.head_dim).transpose(1, 2)  # [B, h, k, d_h]
+        v_proj = v_proj.view(B, k_token, self.n_heads, self.head_dim).transpose(1, 2)  # [B, h, k, d_h]
 
         # Attention
-        scores = torch.matmul(q_proj, k_proj.transpose(-2, -1)) / (self.head_dim ** 0.5)  # [h, k, k]
+        scores = torch.matmul(q_proj, k_proj.transpose(-2, -1)) / (self.head_dim ** 0.5)  # [B, h, k, k]
         attn = torch.softmax(scores, dim=-1)
-        out = torch.matmul(attn, v_proj)  # [h, k, d_h]
+        out = torch.matmul(attn, v_proj)  # [B, h, k, d_h]
 
         # 合并多头输出
-        out = out.transpose(0, 1).contiguous().view(k_token, d_f)  # [k, d_f]
+        out = out.transpose(1, 2).contiguous().view(B, k_token, d_f)  # [k, d_f]
 
         # Residual 1
         out = self.linear_o(out) + tokens
@@ -260,18 +260,20 @@ class ShapeTokenizer(nn.Module):
     def forward(self, x):
         """
         参数:
-            x: Tensor[n, 3]，原始点云输入
+            x: Tensor[B, n, 3]，原始点云输入
         返回:
-            shape_tokens: Tensor[k, d_f]
+            shape_tokens: Tensor[B, k, d_f]
         """
+        B, N, _ = x.shape
+
         # Step 1: Fourier 编码 → [n, pe_dim]
-        x_encoded = self.pos_encoder(x)
+        x_encoded = self.pos_encoder(x.view(-1, 3))  # [B*N, pe_dim]
 
         # Step 2: 投影 → [n, d_f]
-        x_projected = self.projector(x_encoded)
+        x_projected = self.projector(x_encoded).view(B, N, self.d_f)  # [B, N, d_f]
 
         # Step 3: 6 × (Cross Attention + Self Attention × 2)
-        tokens = self.token_embed
+        tokens = self.token_embed.unsqueeze(0).expand(B, -1, -1)   # [B, k, d_f]
         for block in self.blocks:
             tokens = block(tokens, x_projected)
 
@@ -284,12 +286,13 @@ if __name__ == '__main__':
     # ========== Unit Test of Cross Attention Block ==========
     torch.manual_seed(42)
 
+    B = 4
     d_f = 128
     k = 32    # number of learned tokens
     n = 2048  # number of input point features
 
-    query = torch.randn(k, d_f)
-    points = torch.randn(n, d_f)
+    query = torch.randn(B, k, d_f)
+    points = torch.randn(B, n, d_f)
 
     print("✅ Input shapes:")
     print("  Query shape:", query.shape)
@@ -299,7 +302,7 @@ if __name__ == '__main__':
     out = cross_attn(query, points)
 
     # 检查输出维度正确
-    assert out.shape == (k, d_f), f"Output shape mismatch: got {out.shape}, expected ({k}, {d_f})"
+    assert out.shape == (B, k, d_f), f"Output shape mismatch: got {out.shape}, expected ({k}, {d_f})"
 
     # 检查是否为有限值（无 inf / nan）
     assert torch.isfinite(out).all(), "Output contains NaN or Inf!"
@@ -310,12 +313,12 @@ if __name__ == '__main__':
     # ========== End Unit Test of Cross Attention Block ==========
 
     # ========== Unit Test of Self Attention Block ==========
-    tokens = torch.randn(k, d_f)
+    tokens = torch.randn(B, k, d_f)
     self_attn = SelfAttentionBlock(d_f=d_f, n_heads=8)
     out2 = self_attn(tokens)
 
     # 检查输出维度正确
-    assert out2.shape == (k, d_f), f"SelfAttention output shape mismatch: got {out2.shape}, expected ({k}, {d_f})"
+    assert out2.shape == (B, k, d_f), f"SelfAttention output shape mismatch: got {out2.shape}, expected ({k}, {d_f})"
 
     # 检查是否为有限值
     assert torch.isfinite(out2).all(), "SelfAttention output contains NaN or Inf!"
@@ -326,12 +329,12 @@ if __name__ == '__main__':
     # ========== End Unit Test of Self Attention Block ==========
 
     # ========== Unit Test of Shape Tokenizer ==========
-    dummy_points = torch.randn(n, 3)  # 原始点云输入 [n, 3]
+    dummy_points = torch.randn(B, n, 3)  # 原始点云输入 [n, 3]
     tokenizer = ShapeTokenizer(num_tokens=k, d_in=3, d_f=d_f, n_heads=8, num_frequencies=16, num_blocks=6)
     shape_tokens = tokenizer(dummy_points)
 
     # 检查输出维度
-    assert shape_tokens.shape == (k, d_f), f"ShapeTokenizer output shape mismatch: got {shape_tokens.shape}, expected ({k}, {d_f})"
+    assert shape_tokens.shape == (B, k, d_f), f"ShapeTokenizer output shape mismatch: got {shape_tokens.shape}, expected ({k}, {d_f})"
 
     # 检查是否为有限值
     assert torch.isfinite(shape_tokens).all(), "ShapeTokenizer output contains NaN or Inf!"
