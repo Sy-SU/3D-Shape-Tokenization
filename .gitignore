@@ -208,3 +208,6 @@ __marimo__/
 
 # dataset
 data/ShapeNetCore.v2.PC15k/
+
+# outs
+outs/
