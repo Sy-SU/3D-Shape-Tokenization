@@ -16,11 +16,15 @@
 """
 
 import os
+import sys
 import time
 import torch
 import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
+
+# 添加 utils 模块所在路径
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from models.shape_tokenizer import ShapeTokenizer
 from models.velocity_estimator import VelocityEstimator
@@ -32,7 +36,7 @@ SAVE_DIR = os.path.join("outs/reconstruct", TIMESTAMP)
 
 
 # ========== 加载模型结构和权重 ==========
-def load_models(device, tokenizer_ckpt='checkpoints/tokenizer.pth', estimator_ckpt='checkpoints/estimator.pth'):
+def load_models(device, tokenizer_ckpt='checkpoints/best_tokenizer.pt', estimator_ckpt='checkpoints/best_estimator.pt'):
     tokenizer = ShapeTokenizer(
         num_tokens=32, d_in=3, d_f=128, n_heads=8,
         num_frequencies=16, num_blocks=6
@@ -62,21 +66,25 @@ def decode_from_token(estimator, tokens, num_points=2048, steps=100):
         Tensor[num_points, 3]，重建点云
     """
     device = tokens.device
-    B, K, D = 1, *tokens.shape  # 添加 batch 维度
-    s = tokens.unsqueeze(0)     # [1, K, D]
+    B, K, D = tokens.shape
+    s = tokens     # [B, K, D]
 
-    x = torch.rand(num_points, 3, device=device) * 2 - 1  # x0 ∈ Uniform([-1,1]^3)
+    x = torch.rand(B, num_points, 3, device=device) * 2 - 1  # x0 ∈ Uniform([-1,1]^3)
     x = x.to(device)
     h = 1.0 / steps
-    t = torch.zeros(num_points, device=device)
+    t = torch.zeros(B, num_points, device=device)
 
     for i in range(steps):
         t_a = t.clone()
-        v1 = estimator(x, s.expand(num_points, -1, -1), t_a)
+        print(x.shape)
+        print(s.shape)
+        print(t_a.shape)
+        v1 = estimator(x, s, t_a)
+        imator(x, s, t_a)
 
         x_temp = x + h * v1
         t_b = t + h
-        v2 = estimator(x_temp, s.expand(num_points, -1, -1), t_b)
+        v2 = estimator(x_temp, s, t_b)
 
         x = x + 0.5 * h * (v1 + v2)
         t = t_b
@@ -85,20 +93,20 @@ def decode_from_token(estimator, tokens, num_points=2048, steps=100):
 
 
 # ========== Chamfer Distance 实现 ==========
-def chamfer_distance(x: torch.Tensor, y: torch.Tensor) -> float:
+def chamfer_distance(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
-    计算对称 Chamfer 距离
+    计算批量对称 Chamfer 距离
     参数:
-        x: Tensor[M, 3]
-        y: Tensor[N, 3]
+        x: Tensor[B, M, 3]
+        y: Tensor[B, N, 3]
     返回:
-        float: chamfer distance
+        Tensor[B]: 每个样本的 chamfer 距离
     """
-    x = x.unsqueeze(1)
-    y = y.unsqueeze(0)
-    dist = ((x - y) ** 2).sum(dim=2)
-    cd = dist.min(dim=1)[0].mean() + dist.min(dim=0)[0].mean()
-    return cd.item()
+    x = x.unsqueeze(2)  # [B, M, 1, 3]
+    y = y.unsqueeze(1)  # [B, 1, N, 3]
+    dist = ((x - y) ** 2).sum(dim=-1)  # [B, M, N]
+    cd = dist.min(dim=2)[0].mean(dim=1) + dist.min(dim=1)[0].mean(dim=1)  # [B]
+    return cd
 
 
 # ========== 评估函数 ==========
@@ -107,15 +115,15 @@ def evaluate(tokenizer, estimator, dataloader, device):
 
     cds = []
     for i, batch in enumerate(tqdm(dataloader, desc="Evaluating")):
-        gt = batch['points'].squeeze(0).to(device)
-        tokens = tokenizer(gt)
-        pred = decode_from_token(estimator, tokens, num_points=2048, steps=100)
+        gt = batch['points'].to(device)  # [B, N, 3]
+        tokens = tokenizer(gt)           # [B, K, D]
+        pred = decode_from_token(estimator, tokens, num_points=2048, steps=100)  # [B, 2048, 3]
 
-        cd = chamfer_distance(pred, gt.cpu())
-        cds.append(cd)
-
-        np.save(os.path.join(SAVE_DIR, f"{i:05d}_recon.npy"), pred.numpy())
-        np.save(os.path.join(SAVE_DIR, f"{i:05d}_gt.npy"), gt.cpu().numpy())
+        cd_batch = chamfer_distance(pred, gt.cpu())  # [B]
+        for j in range(pred.shape[0]):
+            cds.append(cd_batch[j].item())
+            np.save(os.path.join(SAVE_DIR, f"{i * pred.shape[0] + j:05d}_recon.npy"), pred[j].cpu().numpy())
+            np.save(os.path.join(SAVE_DIR, f"{i * pred.shape[0] + j:05d}_gt.npy"), gt[j].cpu().numpy())
 
     avg_cd = sum(cds) / len(cds)
     print(f"✅ Chamfer Distance over {len(cds)} samples: {avg_cd:.6f}")
@@ -129,7 +137,7 @@ if __name__ == '__main__':
     dataloader = get_dataloader(
         root='data/ShapeNetCore.v2.PC15k',
         split='test',
-        batch_size=1,
+        batch_size=128,
         num_points=2048,
         shuffle=False,
         num_workers=2

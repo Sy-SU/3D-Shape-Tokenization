@@ -1,0 +1,23 @@
+{
+  "config": {
+    "batch_size": 32,
+    "num_points": 2048,
+    "epochs": 1,
+    "lr": 0.0001,
+    "weight_decay": 0.01,
+    "d_f": 128,
+    "num_tokens": 32,
+    "kl_weight": 0.0001,
+    "data_root": "data/ShapeNetCore.v2.PC15k",
+    "patience": 5
+  },
+  "train": [
+    {
+      "epoch": 1,
+      "train_flow": 0.22173733610699894,
+      "train_kl": 958.7983132912694,
+      "val_flow": 0.1858581133922677,
+      "val_kl": 41.26566590203179
+    }
+  ]
+}

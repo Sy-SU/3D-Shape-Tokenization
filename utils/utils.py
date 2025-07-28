@@ -9,7 +9,7 @@ class FourierPositionalEncoding3D(nn.Module):
     """
     将3D点云坐标编码为高维傅里叶特征。
 
-    输入: Tensor[n, 3]，每行为 (x, y, z)
+    输入: Tensor[n, 3] or [B, n, 3]，每行为 (x, y, z)
     输出: Tensor[n, out_dim]，其中 out_dim = 3 * 2 * num_frequencies + (3 if include_input)
     """
     def __init__(self, num_frequencies=32, include_input=True, log_scale=True):
@@ -29,8 +29,10 @@ class FourierPositionalEncoding3D(nn.Module):
         返回:
             Tensor[n, out_dim]：傅里叶位置编码特征
         """
-        if coords.ndim != 2 or coords.shape[1] != 3:
-            raise ValueError(f"Expected input of shape [n, 3], but got {coords.shape}")
+        if coords.ndim == 3 and coords.shape[-1] == 3:
+            coords = coords.view(-1, 3)  # 将 [B, N, 3] 展平成 [B*N, 3]
+        elif coords.ndim != 2 or coords.shape[1] != 3:
+            raise ValueError(f"Expected input of shape [n, 3] or [B, N, 3], but got {coords.shape}")
 
         coords = coords.unsqueeze(-1)  # [n, 3, 1]
         freq = self.freq_bands.to(coords.device).reshape(1, 1, -1) * math.pi  # [1, 1, L]

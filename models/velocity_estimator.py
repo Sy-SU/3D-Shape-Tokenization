@@ -125,11 +125,22 @@ class TimeEncoder(nn.Module):
     def forward(self, t):
         if t.ndim == 1:
             t = t[:, None]  # [B, 1]
+        elif t.ndim == 2:
+            pass  # [B, N]
+        else:
+            raise ValueError(f"Unsupported t shape: {t.shape}")
         device = t.device
-        freqs = self.freqs.to(device)[None, :]  # [1, 16]
-        emb = torch.cat([torch.sin(freqs * t), torch.cos(freqs * t)], dim=-1)  # [B, 32]
-        out = self.linear2(self.act(self.linear1(emb)))  # [B, d]
-        return out
+        freqs = self.freqs.to(device)[None, None, :]  # [1, 1, F]
+        t = t.unsqueeze(-1)  # [B, N, 1]
+        emb = torch.cat([
+            torch.sin(freqs * t),  # [B, N, F]
+            torch.cos(freqs * t)   # [B, N, F]
+        ], dim=-1)  # [B, N, 2F]
+        emb = self.linear1(emb)   # [B, N, 64]
+        emb = self.act(emb)
+        emb = self.linear2(emb)   # [B, N, d]
+        return emb
+
 
 
 class AdaLayerNorm(nn.Module):
@@ -199,32 +210,74 @@ class VelocityEstimatorBlock(nn.Module):
             Tensor[B, d]，预测的点速度特征
         """
         # 调制 query
-        x_proj = self.point_proj(x_pe)         # [B, d]
-        x_norm = self.layernorm1(x_proj)       # [B, d]
-        shift1 = self.shift1(t_emb)            # [B, d]
-        scale1 = self.scale1(t_emb)            # [B, d]
-        query = x_norm * (1 + scale1) + shift1  # [B, d]
+        # torch.Size([128, 2048, 3])
+        # torch.Size([128, 32, 128])
+        # torch.Size([128, 2048])
+        print(x_pe.shape)
+        print(x_pe.ndim)
+        if x_pe.ndim == 2:
+            x_pe = x_pe.unsqueeze(1)
+            B, N, _ = x_pe.shape
+            d = t_emb.shape[-1]
 
-        # Cross Attention
-        attn_out = self.cross_attn(query, s)   # [B, d]
+            x_proj = self.point_proj(x_pe)         # [B, d]
+            x_norm = self.layernorm1(x_proj)       # [B, d]
+            shift1 = self.shift1(t_emb)            # [B, d]
+            scale1 = self.scale1(t_emb)            # [B, d]
+            print(x_norm.shape)
+            print(scale1.shape)
+            query = x_norm * (1 + scale1) + shift1  # [B, d]
 
-        # Gating 1（乘以 sigmoid）
-        gate1 = torch.sigmoid(self.gate1(t_emb))
-        h = attn_out * gate1                   # [B, d]
+            # Cross Attention
+            s_expanded = s.unsqueeze(1).expand(B, N, *s.shape[1:])  # [B, N, k, d]
+            query = query.reshape(B * N, d)
+            s_expanded = s_expanded.reshape(B * N, *s.shape[1:])
+            attn_out = self.cross_attn(query, s_expanded).view(B, N, d)
+            # attn_out = self.cross_attn(query, s)   # [B, d]
 
-        # 与 x_norm 残差连接
-        h = h + x_norm                         # [B, d]
+            # Gating 1（乘以 sigmoid）
+            gate1 = torch.sigmoid(self.gate1(t_emb))
+            h = attn_out * gate1                   # [B, d]
 
-        # LayerNorm 后进行 shift2, scale2, gate2 调制
-        h2 = self.layernorm2(h, t_emb)               # [B, d]
-        shift2 = self.shift2(t_emb)            # [B, d]
-        scale2 = self.scale2(t_emb)            # [B, d]
-        h2 = self.mlp(h2)                      # [B, d]
-        gate2 = torch.sigmoid(self.gate2(t_emb))  # [B, d]
-        h2 = h2 * (1 + scale2) + shift2        # [B, d]
-        h2 = h2 * gate2                        # [B, d]
+            # 与 x_norm 残差连接
+            h = h + x_norm                         # [B, d]
 
-        return h + h2  # 最终输出：包含 x_norm、h、h2 的完整残差路径
+            # LayerNorm 后进行 shift2, scale2, gate2 调制
+            h2 = self.layernorm2(h, t_emb)               # [B, d]
+            shift2 = self.shift2(t_emb)            # [B, d]
+            scale2 = self.scale2(t_emb)            # [B, d]
+            h2 = self.mlp(h2)                      # [B, d]
+            gate2 = torch.sigmoid(self.gate2(t_emb))  # [B, d]
+            h2 = h2 * (1 + scale2) + shift2        # [B, d]
+            h2 = h2 * gate2                        # [B, d]
+
+            return h + h2  # 最终输出：包含 x_norm、h、h2 的完整残差路径
+        elif x_pe.ndim == 3:
+            B, N, _ = x_pe.shape
+            print("debug")
+            print(B, N, _)
+            d = t_emb.shape[-1]
+            x_proj = self.point_proj(x_pe)         # [B, N, d]
+            x_norm = self.layernorm1(x_proj)       # [B, N, d]
+            shift1 = self.shift1(t_emb)            # [B, N, d]
+            scale1 = self.scale1(t_emb)            # [B, N, d]
+            query = x_norm * (1 + scale1) + shift1  # [B, N, d]
+            s_expanded = s.unsqueeze(1).expand(B, N, *s.shape[1:])  # [B, N, k, d]
+            query = query.reshape(B * N, d)
+            s_expanded = s_expanded.reshape(B * N, *s.shape[1:])
+            attn_out = self.cross_attn(query, s_expanded).view(B, N, d)
+            gate1 = torch.sigmoid(self.gate1(t_emb))
+            h = attn_out * gate1 + x_norm
+            h2 = self.layernorm2(h, t_emb)
+            shift2 = self.shift2(t_emb)
+            scale2 = self.scale2(t_emb)
+            h2 = self.mlp(h2)
+            gate2 = torch.sigmoid(self.gate2(t_emb))
+            h2 = h2 * (1 + scale2) + shift2
+            h2 = h2 * gate2
+            return h + h2
+        else:
+            raise ValueError("x_pe 的维度应为 2 或 3")
 
 
 # ========== VelocityEstimator ==========
@@ -240,7 +293,7 @@ class VelocityEstimator(nn.Module):
     输出:
         velocity: Tensor[B, 3]
     """
-    def __init__(self, d=512, num_frequencies=16, n_blocks=3):
+    def __init__(self, d=128, num_frequencies=16, n_blocks=3):
         super().__init__()
         self.pos_encoder = FourierPositionalEncoding3D(num_frequencies=num_frequencies, include_input=True)
         self.pe_dim = 3 + 3 * 2 * num_frequencies
@@ -253,6 +306,7 @@ class VelocityEstimator(nn.Module):
         self.final = nn.Linear(d, 3)  # 输出 3D 速度
 
     def forward(self, x, s, t):
+        print(f"x : {x.shape}")
         x_pe = self.pos_encoder(x)         # [B, pe_dim]
         t_emb = self.time_encoder(t)       # [B, d]
 
