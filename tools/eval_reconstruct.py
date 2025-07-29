@@ -16,11 +16,15 @@
 """
 
 import os
+import sys
 import time
 import torch
 import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
+
+# 添加 utils 模块所在路径
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from models.shape_tokenizer import ShapeTokenizer
 from models.velocity_estimator import VelocityEstimator
@@ -32,7 +36,7 @@ SAVE_DIR = os.path.join("outs/reconstruct", TIMESTAMP)
 
 
 # ========== 加载模型结构和权重 ==========
-def load_models(device, tokenizer_ckpt='checkpoints/tokenizer.pth', estimator_ckpt='checkpoints/estimator.pth'):
+def load_models(device, tokenizer_ckpt='checkpoints/best_tokenizer.pt', estimator_ckpt='checkpoints/best_estimator.pt'):
     tokenizer = ShapeTokenizer(
         num_tokens=32, d_in=3, d_f=128, n_heads=8,
         num_frequencies=16, num_blocks=6
@@ -62,26 +66,36 @@ def decode_from_token(estimator, tokens, num_points=2048, steps=100):
         Tensor[num_points, 3]，重建点云
     """
     device = tokens.device
-    B, K, D = 1, *tokens.shape  # 添加 batch 维度
-    s = tokens.unsqueeze(0)     # [1, K, D]
+    K, B, D = tokens.shape  # 添加 batch 维度
+    print(K, B, D)
+    s = tokens.permute(1, 0, 2).contiguous()     # [1, K, D]
+    print(s.shape)
 
-    x = torch.rand(num_points, 3, device=device) * 2 - 1  # x0 ∈ Uniform([-1,1]^3)
-    x = x.to(device)
-    h = 1.0 / steps
-    t = torch.zeros(num_points, device=device)
+    # x_pe: Tensor[B, pe_dim]，Fourier 编码后的点
+    # s: Tensor[B, k, d]，Shape Tokens
+    # t_emb: Tensor[B, d]，TimeEncoder 的输出
 
-    for i in range(steps):
-        t_a = t.clone()
-        v1 = estimator(x, s.expand(num_points, -1, -1), t_a)
+    for _ in range(num_points):
+        # 初始化输入点并进行 Fourier 编码
+        x_raw = torch.rand(1, 3, device=device) * 2 - 1  # 原始坐标 [1, 3]
+        t = torch.zeros(1, device=device)                # 初始时间 [1]
 
-        x_temp = x + h * v1
-        t_b = t + h
-        v2 = estimator(x_temp, s.expand(num_points, -1, -1), t_b)
+        for _ in range(steps):
+            # 注意：VelocityEstimator 内部自动进行 x → pos_enc(x)
+            print(x_raw.shape)
+            print(s.shape)
+            print(t.shape)
+            v1 = estimator(x_raw, s, t)                  # [1, 3]
+            x_temp = x_raw + h * v1
+            t_b = t + h
+            v2 = estimator(x_temp, s, t_b)
 
-        x = x + 0.5 * h * (v1 + v2)
-        t = t_b
+            x_raw = x_raw + 0.5 * h * (v1 + v2)
+            t = t_b
 
-    return x.detach().cpu()
+        recon_points.append(x_raw)  # 每次解出一个点 [1, 3]
+
+    return torch.cat(recon_points, dim=0).detach().cpu()  # [num_points, 3]
 
 
 # ========== Chamfer Distance 实现 ==========
@@ -107,8 +121,14 @@ def evaluate(tokenizer, estimator, dataloader, device):
 
     cds = []
     for i, batch in enumerate(tqdm(dataloader, desc="Evaluating")):
-        gt = batch['points'].squeeze(0).to(device)
-        tokens = tokenizer(gt)
+        print(batch['points'].shape)
+        print(batch['points'].squeeze(0).unsqueeze(1).shape)
+        gt = batch['points'].squeeze(0).unsqueeze(1).to(device)
+        print(gt.shape)
+        tokenizer.num_tokens =  1
+        tokens = tokenizer(gt) # batch_size = 1, 后续要改这里的逻辑
+        print(f"tokens.shape = {tokens.shape}")
+        print(tokenizer.num_tokens)
         pred = decode_from_token(estimator, tokens, num_points=2048, steps=100)
 
         cd = chamfer_distance(pred, gt.cpu())
@@ -127,7 +147,7 @@ if __name__ == '__main__':
     tokenizer, estimator = load_models(device)
 
     dataloader = get_dataloader(
-        root='data/ShapeNetCore.v2.PC15k',
+        root='/root/autodl-fs/ShapeNetCore.v2.PC15k',
         split='test',
         batch_size=1,
         num_points=2048,
