@@ -4,7 +4,7 @@ OUTPUT_FILE = 'tree.txt'
 ROOT_DIR = '.'  # 当前目录，也可以改成绝对路径
 LIMITED_PATH = os.path.join('data', 'ShapeNetCore.v2.PC15k')
 MAX_ITEMS = 2
-IGNORED_DIRS = {'.git'}  # 可添加更多要忽略的目录名
+IGNORED_DIRS = {'.git', 'outs', '__pycache__', '.ipynb_checkpoints', 'logs', 'docs'}  # 可添加更多要忽略的目录名
 
 
 def write_tree(path, f, prefix=''):
