@@ -2,56 +2,28 @@
 ├── .gitignore
 ├── LICENSE
 ├── README.md
+├── checkpoints
+│   ├── best_estimator.pt
+│   └── best_tokenizer.pt
 ├── configs
 │   └── label.json
 ├── data
-│   ├── ShapeNetCore.v2.PC15k
-│   │   ├── 02691156
-│   │   │   ├── test
-│   │   │   │   ├── 10aa040f470500c6a66ef8df4909ded9.npy
-│   │   │   │   └── 118e8142a8cb1fe19a4a28ef635593ce.npy
-│   │   │   └── train
-│   │   │       ├── 10155655850468db78d106ce0a280f87.npy
-│   │   │       └── 1021a0914a7207aff927ed529ad90a11.npy
-│   │   └── 02747177
-│   │       ├── test
-│   │       │   ├── 16e1950b2d507f532056b4bd5d870b47.npy
-│   │       │   └── 1864da0abd05dde7f4fb4dee5181bee.npy
-│   │       └── train
-│   │           ├── 10839d0dc35c94fcf4fb4dee5181bee.npy
-│   │           └── 112120e83ef41de3571c83071e95ca03.npy
 │   └── taxonomy.json
 ├── datasets
 │   ├── __init__.py
-│   ├── __pycache__
-│   │   ├── __init__.cpython-311.pyc
-│   │   └── dataloader.cpython-311.pyc
 │   └── dataloader.py
-├── docs
-│   ├── draft.md
-│   ├── report_zh (d).md
-│   └── todolist.md
 ├── eval.py
 ├── models
 │   ├── __init__.py
-│   ├── __pycache__
-│   │   ├── __init__.cpython-311.pyc
-│   │   ├── shape_tokenizer.cpython-311.pyc
-│   │   └── velocity_estimator.cpython-311.pyc
 │   ├── shape_tokenizer.py
 │   └── velocity_estimator.py
-├── src
-│   └── dataset.py
+├── requirements.txt
 ├── tools
-│   └── train.py
+│   ├── eval_reconstruct.py
+│   ├── train.py
+│   └── visualize.py
 ├── tree.py
 ├── tree.txt
 └── utils
     ├── __init__.py
-    ├── __pycache__
-    │   ├── __init__.cpython-311.pyc
-    │   ├── dataloader.cpython-311.pyc
-    │   ├── shape_tokenizer.cpython-311.pyc
-    │   ├── utils.cpython-311.pyc
-    │   └── velocity_estimator.cpython-311.pyc
     └── utils.py

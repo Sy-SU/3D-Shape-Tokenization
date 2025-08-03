@@ -59,43 +59,44 @@ def decode_from_token(estimator, tokens, num_points=2048, steps=100):
     使用 Heun 方法从 shape token 中重建点云。
     参数:
         estimator: VelocityEstimator
-        tokens: Tensor[k, d]
+        tokens: Tensor[B, K, D]
         num_points: int, 重建点数
         steps: int, ODE 积分步数
     返回:
-        Tensor[num_points, 3]，重建点云
+        Tensor[B, num_points, 3]，重建点云
     """
+    # print(f"num_points = {num_points}, steps = {steps}")
+
     device = tokens.device
-    K, B, D = tokens.shape  # 添加 batch 维度
-    print(K, B, D)
-    s = tokens.permute(1, 0, 2).contiguous()     # [1, K, D]
-    print(s.shape)
+    B, K, D = tokens.shape  # 添加 batch 维度
+    # print(f"B = {B}, K = {K}, D = {D}")
 
-    # x_pe: Tensor[B, pe_dim]，Fourier 编码后的点
-    # s: Tensor[B, k, d]，Shape Tokens
-    # t_emb: Tensor[B, d]，TimeEncoder 的输出
+    h = 1.0 / steps  # 时间步长
+    
+    # 扩展 shape token s 为 [B, num_points, K, D] → [B * num_points, K, D]
+    s = tokens.unsqueeze(1).expand(-1, num_points, -1, -1).reshape(B * num_points, K, D)
 
-    for _ in range(num_points):
-        # 初始化输入点并进行 Fourier 编码
-        x_raw = torch.rand(1, 3, device=device) * 2 - 1  # 原始坐标 [1, 3]
-        t = torch.zeros(1, device=device)                # 初始时间 [1]
+    # 初始化重建点 x: [B, num_points, 3]，范围 [-1, 1]
+    x_raw = torch.rand(B, num_points, 3, device=device) * 2 - 1
+    t = torch.zeros(B, num_points, device=device)  # 初始时间 [B, num_points]
 
-        for _ in range(steps):
-            # 注意：VelocityEstimator 内部自动进行 x → pos_enc(x)
-            print(x_raw.shape)
-            print(s.shape)
-            print(t.shape)
-            v1 = estimator(x_raw, s, t)                  # [1, 3]
-            x_temp = x_raw + h * v1
-            t_b = t + h
-            v2 = estimator(x_temp, s, t_b)
+    # 展平 x 和 t 为 [B * num_points, 3] 和 [B * num_points]
+    x_raw = x_raw.view(B * num_points, 3)
+    t = t.view(B * num_points)
 
-            x_raw = x_raw + 0.5 * h * (v1 + v2)
-            t = t_b
+    for _ in range(steps):
+        v1 = estimator(x_raw, s, t)                      # [B * num_points, 3]
+        x_temp = x_raw + h * v1                          # Euler 第一步
+        t_b = t + h
+        v2 = estimator(x_temp, s, t_b)                   # Heun 第二步
 
-        recon_points.append(x_raw)  # 每次解出一个点 [1, 3]
+        x_raw = x_raw + 0.5 * h * (v1 + v2)
+        t = t_b
 
-    return torch.cat(recon_points, dim=0).detach().cpu()  # [num_points, 3]
+    # 恢复形状为 [B, num_points, 3]
+    recon_points = x_raw.view(B, num_points, 3)
+    return recon_points.detach().cpu()
+
 
 
 # ========== Chamfer Distance 实现 ==========
@@ -119,17 +120,22 @@ def chamfer_distance(x: torch.Tensor, y: torch.Tensor) -> float:
 def evaluate(tokenizer, estimator, dataloader, device):
     os.makedirs(SAVE_DIR, exist_ok=True)
 
+    # print(tokenizer)
+    # print(estimator)
+    num_points = dataloader.dataset.num_points
+    print(f"Evaluating on {len(dataloader)} batches, each with {num_points} points...")
+
     cds = []
     for i, batch in enumerate(tqdm(dataloader, desc="Evaluating")):
-        print(batch['points'].shape)
-        print(batch['points'].squeeze(0).unsqueeze(1).shape)
-        gt = batch['points'].squeeze(0).unsqueeze(1).to(device)
-        print(gt.shape)
-        tokenizer.num_tokens =  1
-        tokens = tokenizer(gt) # batch_size = 1, 后续要改这里的逻辑
-        print(f"tokens.shape = {tokens.shape}")
-        print(tokenizer.num_tokens)
-        pred = decode_from_token(estimator, tokens, num_points=2048, steps=100)
+        # batch['points'] ：[B, N, 3]，点云数据
+        # batch['label_name']：类别标签
+        # print(batch['points'].shape)
+        gt = batch['points'].to(device)
+        # print(gt.shape)
+        tokens = tokenizer(gt)
+        # print(f"tokens.shape = {tokens.shape}") #[B, K, D]
+
+        pred = decode_from_token(estimator, tokens, num_points=num_points, steps=100)
 
         cd = chamfer_distance(pred, gt.cpu())
         cds.append(cd)
@@ -149,8 +155,8 @@ if __name__ == '__main__':
     dataloader = get_dataloader(
         root='/root/autodl-fs/ShapeNetCore.v2.PC15k',
         split='test',
-        batch_size=1,
-        num_points=2048,
+        batch_size=4, #  每个批次的点云数量
+        num_points=256, #  每个点云每次取出的点数 2048
         shuffle=False,
         num_workers=2
     )
