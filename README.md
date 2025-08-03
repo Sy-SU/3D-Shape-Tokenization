@@ -82,13 +82,22 @@ pip install -r requirements.txt
 ### 4. 训练模型
 
 ```bash
-python tools/train.py
+chmod +x scripts/train.sh
+scripts/train.sh
 ```
 
 ### 5. 评估模型
 
 ```bash
-python tools/eval_reconstruct.py --weights checkpoints/best_model.pth
+chmod +x scripts/eval.sh
+scripts/eval.sh
+```
+
+### 6. 可视化
+
+```bash
+chmod +x scripts/visualize.sh
+scripts/visualize.sh demo
 ```
 
 ---

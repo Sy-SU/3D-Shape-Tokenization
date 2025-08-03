@@ -22,6 +22,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
+import argparse
 
 # 添加 utils 模块所在路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -32,7 +33,7 @@ from datasets.dataloader import get_dataloader
 
 # ========== 设置全局保存目录时间戳 ==========
 TIMESTAMP = time.strftime("%Y%m%d_%H%M%S")
-SAVE_DIR = os.path.join("outs/reconstruct", TIMESTAMP)
+# SAVE_DIR = os.path.join("outs/reconstruct", TIMESTAMP)
 
 
 # ========== 加载模型结构和权重 ==========
@@ -117,8 +118,8 @@ def chamfer_distance(x: torch.Tensor, y: torch.Tensor) -> float:
 
 
 # ========== 评估函数 ==========
-def evaluate(tokenizer, estimator, dataloader, device):
-    os.makedirs(SAVE_DIR, exist_ok=True)
+def evaluate(tokenizer, estimator, dataloader, device, save_dir):
+    os.makedirs(save_dir, exist_ok=True)
 
     # print(tokenizer)
     # print(estimator)
@@ -140,8 +141,8 @@ def evaluate(tokenizer, estimator, dataloader, device):
         cd = chamfer_distance(pred, gt.cpu())
         cds.append(cd)
 
-        np.save(os.path.join(SAVE_DIR, f"{i:05d}_recon.npy"), pred.numpy())
-        np.save(os.path.join(SAVE_DIR, f"{i:05d}_gt.npy"), gt.cpu().numpy())
+        np.save(os.path.join(save_dir, f"{i:05d}_recon.npy"), pred.numpy())
+        np.save(os.path.join(save_dir, f"{i:05d}_gt.npy"), gt.cpu().numpy())
 
     avg_cd = sum(cds) / len(cds)
     print(f"✅ Chamfer Distance over {len(cds)} samples: {avg_cd:.6f}")
@@ -149,16 +150,31 @@ def evaluate(tokenizer, estimator, dataloader, device):
 
 # ========== 主入口 ==========
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="评估 ShapeTokenizer 与 VelocityEstimator 的重建性能")
+    parser.add_argument('--data_root', type=str, default='/root/autodl-fs/ShapeNetCore.v2.PC15k')
+    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--num_points', type=int, default=2048)
+    parser.add_argument('--num_workers', type=int, default=2)
+    parser.add_argument('--save_dir', type=str, default=None, help='保存输出目录，若为空则使用当前时间戳')
+    args = parser.parse_args()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer, estimator = load_models(device)
 
+    if args.save_dir is None:
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        save_dir = os.path.join("outs/reconstruct", timestamp)
+    else:
+        save_dir = os.path.join("outs/reconstruct", args.save_dir)
+
     dataloader = get_dataloader(
-        root='/root/autodl-fs/ShapeNetCore.v2.PC15k',
+        root=args.data_root,
         split='test',
-        batch_size=4, #  每个批次的点云数量
-        num_points=256, #  每个点云每次取出的点数 2048
+        batch_size=args.batch_size,
+        num_points=args.num_points,
         shuffle=False,
-        num_workers=2
+        num_workers=args.num_workers
     )
 
-    evaluate(tokenizer, estimator, dataloader, device)
+    evaluate(tokenizer, estimator, dataloader, device, save_dir)
+

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "🚀 启动训练..."
+
+python tools/train.py \
+  --batch_size 32 \
+  --num_points 2048 \
+  --epochs 1000 \
+  --lr 1e-4 \
+  --weight_decay 0 \
+  --d_f 512 \
+  --num_tokens 32 \
+  --kl_weight 1e-4 \
+  --data_root ~/autodl-fs/demo 

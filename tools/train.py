@@ -20,6 +20,7 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import LambdaLR
 from tqdm import tqdm
 import json
 from datetime import datetime
@@ -31,12 +32,20 @@ from datasets.dataloader import get_dataloader
 from models.shape_tokenizer import ShapeTokenizer
 from models.velocity_estimator import VelocityEstimator
 
+# ========== Transformer LR Scheduler ==========
+def get_transformer_lr_schedule(warmup_steps, d_model):
+    def lr_lambda(step):
+        step += 1
+        return (d_model ** -0.5) * min(step ** -0.5, step * warmup_steps ** -1.5)
+    return lr_lambda
+
 
 # ========== 单轮训练 ==========
 def run_one_epoch(tokenizer: ShapeTokenizer,
                   estimator: VelocityEstimator,
                   dataloader,
                   optimizer: optim.Optimizer = None,
+                  scheduler: LambdaLR = None,
                   device: torch.device = None,
                   kl_weight: float = 1e-4,
                   mode: str = "train"):
@@ -92,6 +101,8 @@ def run_one_epoch(tokenizer: ShapeTokenizer,
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            if scheduler is not None:
+                scheduler.step()
 
         total_flow_loss += loss_flow.item()
         total_kl_loss += loss_kl.item()
@@ -108,14 +119,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_points', type=int, default=2048)
-    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--weight_decay', type=float, default=1e-2)
-    parser.add_argument('--d_f', type=int, default=128)
+    parser.add_argument('--weight_decay', type=float, default=0)
+    parser.add_argument('--d_f', type=int, default=512)
+    parser.add_argument('--d', type=int, default=64)
     parser.add_argument('--num_tokens', type=int, default=32)
     parser.add_argument('--kl_weight', type=float, default=1e-4)
     parser.add_argument('--data_root', type=str, default='data/ShapeNetCore.v2.PC15k')
-    parser.add_argument('--patience', type=int, default=5)
+    parser.add_argument('--patience', type=int, default=9999)
+    parser.add_argument('--warmup_steps', type=int, default=4000)
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -124,13 +137,14 @@ def main():
         num_tokens=args.num_tokens,
         d_in=3,
         d_f=args.d_f,
+        d=args.d,
         n_heads=8,
         num_frequencies=16,
         num_blocks=6
     ).to(device)
 
     estimator = VelocityEstimator(
-        d=args.d_f,
+        d=args.d,
         num_frequencies=16,
         n_blocks=3
     ).to(device)
@@ -138,8 +152,10 @@ def main():
     optimizer = optim.AdamW(
         list(tokenizer.parameters()) + list(estimator.parameters()),
         lr=args.lr,
+        betas=(0.9, 0.98),     
         weight_decay=args.weight_decay
     )
+    scheduler = LambdaLR(optimizer, lr_lambda=get_transformer_lr_schedule(args.warmup_steps, args.d_f))
 
     train_loader = get_dataloader(
         root=args.data_root,
@@ -171,11 +187,11 @@ def main():
     }
     best_val = float("inf")
     patience_counter = 0
-
+    print(f"Training ShapeTokenizer and VelocityEstimator with config: {args}")
     for epoch in range(1, args.epochs + 1):
         print(f"Epoch {epoch}/{args.epochs}")
-        train_flow, train_kl = run_one_epoch(tokenizer, estimator, train_loader, optimizer, device, args.kl_weight, mode="train")
-        val_flow, val_kl = run_one_epoch(tokenizer, estimator, val_loader, optimizer=None, device=device, kl_weight=args.kl_weight, mode="val")
+        train_flow, train_kl = run_one_epoch(tokenizer, estimator, train_loader, optimizer, scheduler, device, args.kl_weight, mode="train")
+        val_flow, val_kl = run_one_epoch(tokenizer, estimator, val_loader, optimizer=None, scheduler=None, device=device, kl_weight=args.kl_weight, mode="val")
 
         print(f"[Epoch {epoch}] Train Flow: {train_flow:.6f} | Train KL: {train_kl:.6f} || Val Flow: {val_flow:.6f} | Val KL: {val_kl:.6f}")
 
