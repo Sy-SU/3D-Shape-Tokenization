@@ -132,6 +132,10 @@ def main():
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+
+    # tokenizer: n = 2048, k = 32, d_f = 512, d = 64, n_head = 8
+    # 5490 万训练参数
 
     tokenizer = ShapeTokenizer(
         num_tokens=args.num_tokens,
@@ -144,10 +148,27 @@ def main():
     ).to(device)
 
     estimator = VelocityEstimator(
-        d=args.d,
+        d=args.d_f, # TODO d_f 还是 d? 
         num_frequencies=16,
         n_blocks=3
     ).to(device)
+
+    # ===== 打印 Tokenizer 结构与参数 =====
+    print("\n📦 ShapeTokenizer Architecture:\n")
+    print(tokenizer)
+    tokenizer_params = sum(p.numel() for p in tokenizer.parameters() if p.requires_grad)
+    print(f"📊 ShapeTokenizer trainable parameters: {tokenizer_params / 1e6:.2f} M")
+
+    # ===== 打印 VelocityEstimator 结构与参数 =====
+    print("\n📦 VelocityEstimator Architecture:\n")
+    print(estimator)
+    estimator_params = sum(p.numel() for p in estimator.parameters() if p.requires_grad)
+    print(f"📊 VelocityEstimator trainable parameters: {estimator_params / 1e6:.2f} M")
+
+    total_params = sum(p.numel() for p in tokenizer.parameters() if p.requires_grad) \
+             + sum(p.numel() for p in estimator.parameters() if p.requires_grad)
+    print(f"📊 Total ShapeNet LFM trainable parameters: {total_params / 1e6:.2f} M")
+
 
     optimizer = optim.AdamW(
         list(tokenizer.parameters()) + list(estimator.parameters()),
