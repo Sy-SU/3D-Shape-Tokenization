@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils import FourierPositionalEncoding3D, PointFeatureProjector, RMSNorm
 
-# ========== Cross Attention Block for Shape Tokenizer ==========
+# ========== Cross Attention Block for Velocity Estimator ==========
 
 
 class CrossAttentionBlock(nn.Module):
@@ -32,31 +32,32 @@ class CrossAttentionBlock(nn.Module):
         - Linear_o 输出
         - 残差连接 + 前馈 MLP（LayerNorm → Linear → GELU → Linear → Residual）
     """
-    def __init__(self, d: int, n_heads: int = 8):
+    def __init__(self, d: int, d_f: int, n_heads: int = 8):
         super().__init__()
         self.d = d
+        self.d_f = d_f
         self.n_heads = n_heads
-        self.head_dim = d // n_heads
+        self.head_dim = d_f // n_heads
 
-        assert d % n_heads == 0, "d 必须能整除 n_heads"
+        assert d_f % n_heads == 0, "d_f 必须能整除 n_heads"
 
-        self.layernorm_q = nn.LayerNorm(d)
+        self.layernorm_q = nn.LayerNorm(d_f)
         self.layernorm_kv = nn.LayerNorm(d)
 
-        self.linear_q = nn.Linear(d, d)
-        self.linear_k = nn.Linear(d, d)
-        self.linear_v = nn.Linear(d, d)
+        self.linear_q = nn.Linear(d_f, d_f)
+        self.linear_k = nn.Linear(d, d_f)
+        self.linear_v = nn.Linear(d, d_f)
 
-        self.rmsnorm_q = RMSNorm(d)
-        self.rmsnorm_k = RMSNorm(d)
+        self.rmsnorm_q = RMSNorm(d_f)
+        self.rmsnorm_k = RMSNorm(d_f)
 
-        self.linear_o = nn.Linear(d, d)
+        self.linear_o = nn.Linear(d_f, d_f)
 
-        self.mlp_norm = nn.LayerNorm(d)
+        self.mlp_norm = nn.LayerNorm(d_f)
         self.mlp = nn.Sequential(
-            nn.Linear(d, d * 4),
+            nn.Linear(d_f, d_f * 4),
             nn.GELU(),
-            nn.Linear(d * 4, d)
+            nn.Linear(d_f * 4, d_f)
         )
 
     def forward(self, query: torch.Tensor, point_features: torch.Tensor) -> torch.Tensor:
@@ -67,11 +68,15 @@ class CrossAttentionBlock(nn.Module):
         返回:
             Tensor[B, d]
         """
-        B, d = query.shape
-        B2, k, d2 = point_features.shape
+        B, d = query.shape #  获取查询(query)的批次大小B和维度d
+        B2, k, d2 = point_features.shape #  获取点特征(point_features)的批次大小B2、特征数量k和维度d2
 
-        if B != B2 or d != d2:
-            raise ValueError(f"输入维度不匹配: query {query.shape}, point_features {point_features.shape}")
+        if B != B2:
+            raise ValueError(f"Batch size 不一致: query {query.shape}, point_features {point_features.shape}")
+        if d != self.d_f:
+            raise ValueError(f"query 的维度应为 d_f={self.d_f}，但实际为 {d}")
+        if d2 != self.d:
+            raise ValueError(f"point_features 的 token 维度应为 d={self.d}，但实际为 {d2}")
 
         # 1. LayerNorm & projection
         q_input = self.layernorm_q(query)                      # [B, d]
@@ -81,10 +86,16 @@ class CrossAttentionBlock(nn.Module):
         k_proj = self.rmsnorm_k(self.linear_k(kv_input))       # [B, k, d]
         v_proj = self.linear_v(kv_input)                       # [B, k, d]
 
+        # print(f"q_proj 的维度 : {q_proj.shape}")
+        # print(f"k_proj 的维度 : {k_proj.shape}")
+        # print(f"v_proj 的维度 : {v_proj.shape}")
+        # print(f"特征数量 k = {k}")
+        # print(self.head_dim)
+
         # 2. Reshape to multi-head
-        q_proj = q_proj.view(B, self.n_heads, 1, self.head_dim)     # [B, h, 1, d_h]
-        k_proj = k_proj.view(B, self.n_heads, k, self.head_dim)     # [B, h, k, d_h]
-        v_proj = v_proj.view(B, self.n_heads, k, self.head_dim)     # [B, h, k, d_h]
+        q_proj = q_proj.contiguous().view(B, self.n_heads, 1, self.head_dim)     # [B, h, 1, d_h]
+        k_proj = k_proj.contiguous().view(B, self.n_heads, k, self.head_dim)     # [B, h, k, d_h]
+        v_proj = v_proj.contiguous().view(B, self.n_heads, k, self.head_dim)     # [B, h, k, d_h]
 
         # 3. Scaled Dot Product Attention
         scores = torch.matmul(q_proj, k_proj.transpose(-2, -1)) / (self.head_dim ** 0.5)  # [B, h, 1, k]
@@ -137,22 +148,32 @@ class AdaLayerNorm(nn.Module):
     自适应归一化：根据时间嵌入 t_emb 对输入 x 进行调制。
 
     输入:
-        x: Tensor[B, d]
-        t_emb: Tensor[B, d]
+        x: Tensor[B, d_f]
+        t_emb: Tensor[B, d]，原始时间编码（需要投影）
     输出:
-        Tensor[B, d]
+        Tensor[B, d_f]
     """
-    def __init__(self, d):
+    def __init__(self, d, d_f):
         super().__init__()
-        self.norm = nn.LayerNorm(d)
-        self.shift = nn.Linear(d, d)
-        self.scale = nn.Linear(d, d)
+        self.norm = nn.LayerNorm(d_f)
+        self.cond_proj = nn.Linear(d, d_f)     # 将 cond 从 d 投影到 d_f
+        self.shift = nn.Linear(d_f, d_f)
+        self.scale = nn.Linear(d_f, d_f)
 
     def forward(self, x, t_emb):
-        x_norm = self.norm(x)
-        shift = self.shift(t_emb)
-        scale = self.scale(t_emb)
-        return x_norm * (1 + scale) + shift
+        """
+        参数:
+            x: Tensor[B, d_f]
+            t_emb: Tensor[B, d]
+        返回:
+            Tensor[B, d_f]
+        """
+        cond = self.cond_proj(t_emb)           # [B, d_f]
+        x_norm = self.norm(x)                  # [B, d_f]
+        shift = self.shift(cond)               # [B, d_f]
+        scale = self.scale(cond)               # [B, d_f]
+        return x_norm * (1 + scale) + shift    # [B, d_f]
+
 
 
 # ========== VelocityEstimatorBlock ==========
@@ -169,25 +190,25 @@ class VelocityEstimatorBlock(nn.Module):
         - LayerNorm → shift2 & scale2 + Gating 2（门控）
         - x_norm 与 h 残差连接，最终加上 h2
     """
-    def __init__(self, d, pe_dim):
+    def __init__(self, d, d_f, pe_dim):
         super().__init__()
-        self.point_proj = nn.Linear(pe_dim, d)
-        self.layernorm1 = nn.LayerNorm(d)
-        self.shift1 = nn.Linear(d, d)
-        self.scale1 = nn.Linear(d, d)
-        self.gate1 = nn.Linear(d, d)
+        self.point_proj = nn.Linear(pe_dim, d_f)
+        self.layernorm1 = nn.LayerNorm(d_f)
+        self.shift1 = nn.Linear(d, d_f)
+        self.scale1 = nn.Linear(d, d_f)
+        self.gate1 = nn.Linear(d, d_f)
 
-        self.cross_attn = CrossAttentionBlock(d, n_heads=8)
+        self.cross_attn = CrossAttentionBlock(d, d_f, n_heads=8)
 
         self.mlp = nn.Sequential(
-            nn.Linear(d, d * 4),
+            nn.Linear(d_f, d_f * 4),
             nn.GELU(),
-            nn.Linear(d * 4, d)
+            nn.Linear(d_f * 4, d_f)
         )
-        self.layernorm2 = AdaLayerNorm(d)
-        self.shift2 = nn.Linear(d, d)
-        self.scale2 = nn.Linear(d, d)
-        self.gate2 = nn.Linear(d, d)
+        self.layernorm2 = AdaLayerNorm(d, d_f)
+        self.shift2 = nn.Linear(d, d_f)
+        self.scale2 = nn.Linear(d, d_f)
+        self.gate2 = nn.Linear(d, d_f)
 
     def forward(self, x_pe, s, t_emb):
         """
@@ -210,21 +231,33 @@ class VelocityEstimatorBlock(nn.Module):
 
         # Gating 1（乘以 sigmoid）
         gate1 = torch.sigmoid(self.gate1(t_emb))
+        # print(f"attn_out 的维度 {attn_out.shape}")
+        # print(f"gate1 的维度 {gate1.shape}")
         h = attn_out * gate1                   # [B, d]
 
         # 与 x_norm 残差连接
         h = h + x_norm                         # [B, d]
 
+        # print(f"t_emb 的维度 {t_emb.shape}")
+        # print(f"h 的维度 {h.shape}")
+
         # LayerNorm 后进行 shift2, scale2, gate2 调制
-        h2 = self.layernorm2(h, t_emb)               # [B, d]
+        # h2 = self.layernorm2(h, t_emb)               # [B, d]
         shift2 = self.shift2(t_emb)            # [B, d]
         scale2 = self.scale2(t_emb)            # [B, d]
+        h2 = self.layernorm2(h, t_emb)
+        h2 = h2 * (1 + scale2) + shift2
+
         h2 = self.mlp(h2)                      # [B, d]
         gate2 = torch.sigmoid(self.gate2(t_emb))  # [B, d]
         h2 = h2 * (1 + scale2) + shift2        # [B, d]
         h2 = h2 * gate2                        # [B, d]
 
-        return h + h2  # 最终输出：包含 x_norm、h、h2 的完整残差路径
+        out = h + h2
+
+        # print(f"out 的维度 {out.shape}")
+
+        return out  # 最终输出：包含 x_norm、h、h2 的完整残差路径
 
 
 # ========== VelocityEstimator ==========
@@ -240,17 +273,17 @@ class VelocityEstimator(nn.Module):
     输出:
         velocity: Tensor[B, 3]
     """
-    def __init__(self, d=512, num_frequencies=16, n_blocks=3):
+    def __init__(self, d=64, d_f=512, num_frequencies=16, n_blocks=3):
         super().__init__()
         self.pos_encoder = FourierPositionalEncoding3D(num_frequencies=num_frequencies, include_input=True)
         self.pe_dim = 3 + 3 * 2 * num_frequencies
         self.time_encoder = TimeEncoder(d)
 
         self.blocks = nn.ModuleList([
-            VelocityEstimatorBlock(d, self.pe_dim) for _ in range(n_blocks)
+            VelocityEstimatorBlock(d, d_f, self.pe_dim) for _ in range(n_blocks)
         ])
 
-        self.final = nn.Linear(d, 3)  # 输出 3D 速度
+        self.final = nn.Linear(d_f, 3)  # 输出 3D 速度
 
     def forward(self, x, s, t):
         x_pe = self.pos_encoder(x)         # [B, pe_dim]

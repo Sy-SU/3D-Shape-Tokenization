@@ -39,14 +39,14 @@ TIMESTAMP = time.strftime("%Y%m%d_%H%M%S")
 # ========== 加载模型结构和权重 ==========
 def load_models(device, tokenizer_ckpt='checkpoints/best_tokenizer.pt', estimator_ckpt='checkpoints/best_estimator.pt'):
     tokenizer = ShapeTokenizer(
-        num_tokens=32, d_in=3, d_f=128, n_heads=8,
+        num_tokens=32, d_in=3, d_f=512, n_heads=8,
         num_frequencies=16, num_blocks=6
     ).to(device)
     tokenizer.load_state_dict(torch.load(tokenizer_ckpt))
     tokenizer.eval()
 
     estimator = VelocityEstimator(
-        d=128, num_frequencies=16, n_blocks=3
+        d=64, num_frequencies=16, n_blocks=3
     ).to(device)
     estimator.load_state_dict(torch.load(estimator_ckpt))
     estimator.eval()
@@ -151,7 +151,7 @@ def evaluate(tokenizer, estimator, dataloader, device, save_dir):
 # ========== 主入口 ==========
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="评估 ShapeTokenizer 与 VelocityEstimator 的重建性能")
-    parser.add_argument('--data_root', type=str, default='/root/autodl-fs/ShapeNetCore.v2.PC15k')
+    parser.add_argument('--data_root', type=str, default='/root/autodl-fs/demo')
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--num_points', type=int, default=2048)
     parser.add_argument('--num_workers', type=int, default=2)

@@ -9,6 +9,7 @@ python tools/train.py \
   --lr 1e-4 \
   --weight_decay 0 \
   --d_f 512 \
+  --d 64 \
   --num_tokens 32 \
   --kl_weight 1e-4 \
   --data_root ~/autodl-fs/demo 
