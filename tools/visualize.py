@@ -92,6 +92,12 @@ def visualize_recon_vs_gt(npy_dir, out_dir="outs/vis_compare", max_batches=10):
         recon = np.load(recon_path)  # [B, N, 3]
         gt = np.load(gt_path)        # [B, N, 3]
 
+        # 如果只有两维，自动加 batch 维
+        if recon.ndim == 2 and recon.shape[1] == 3:
+            recon = recon[None, ...]   # -> [1, N, 3]
+        if gt.ndim == 2 and gt.shape[1] == 3:
+            gt = gt[None, ...]         # -> [1, N, 3]
+
         B = recon.shape[0]
         for i in range(B):
             cd = chamfer_distance_numpy(recon[i], gt[i])
