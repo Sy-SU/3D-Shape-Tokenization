@@ -24,6 +24,10 @@ from tqdm import tqdm
 import numpy as np
 import argparse
 from torch.utils.data import DataLoader, SubsetRandomSampler
+from collections import defaultdict
+import math
+import random
+
 
 # 添加 utils 模块所在路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -58,7 +62,8 @@ def load_models(device, num_tokens, d, d_f,
     tokenizer.eval()
 
     estimator = VelocityEstimator(
-        d=d_f,              # 注意：你的 VelocityEstimator 以 d_f 作为内部通道维（与当前实现一致）
+        d=d,
+        d_f=d_f,
         num_frequencies=16,
         n_blocks=3
     ).to(device)
@@ -206,14 +211,44 @@ if __name__ == '__main__':
     dataset = base_loader.dataset
     total = len(dataset)
 
-    # 按需随机抽样
-    if args.num_samples is not None and args.num_samples > 0 and args.num_samples < total:
-        g = torch.Generator()
-        g.manual_seed(args.seed)
-        # 生成不放回的随机索引
-        indices = torch.randperm(total, generator=g)[:args.num_samples].tolist()
-        sampler = SubsetRandomSampler(indices)
-        # 用子采样器重建 DataLoader（其余参数保持一致）
+    # ===== 均匀按类采样 =====
+    target_total = args.num_samples if (args.num_samples is not None and args.num_samples > 0) else 0
+    if target_total and target_total < total:
+        # 1) 按 label_name 分桶
+        label_to_indices = defaultdict(list)
+        for idx in range(total):
+            item = dataset[idx]
+            # 兼容：item 可能是 dict
+            label = item['label_name'] if isinstance(item, dict) else getattr(item, 'label_name', None)
+            if label is None:
+                raise KeyError(f"Sample {idx} has no 'label_name' field.")
+            label_to_indices[label].append(idx)
+
+        num_classes = len(label_to_indices)
+        rng = random.Random(args.seed)
+
+        # 2) 每类分配配额（上取整），优先均匀覆盖各类
+        per_class_quota = max(1, math.ceil(target_total / num_classes))
+
+        selected = []
+        leftovers = []
+
+        for label, idxs in label_to_indices.items():
+            rng.shuffle(idxs)  # 以 seed 打乱
+            take = min(per_class_quota, len(idxs))
+            selected.extend(idxs[:take])
+            # 记录该类剩余备用
+            leftovers.extend(idxs[take:])
+
+        # 3) 如果超过目标总数，截断；如果不足则从剩余里补齐
+        if len(selected) > target_total:
+            selected = selected[:target_total]
+        elif len(selected) < target_total:
+            rng.shuffle(leftovers)
+            need = target_total - len(selected)
+            selected.extend(leftovers[:need])
+
+        sampler = SubsetRandomSampler(selected)
         dataloader = DataLoader(
             dataset,
             batch_size=args.batch_size,
@@ -221,10 +256,20 @@ if __name__ == '__main__':
             num_workers=args.num_workers,
             drop_last=False
         )
-        print(f"🔎 Using a random subset of {args.num_samples}/{total} test samples (seed={args.seed}).")
+
+        # 打印一个简短分布统计
+        dist = defaultdict(int)
+        for i in selected:
+            lab = dataset[i]['label_name'] if isinstance(dataset[i], dict) else getattr(dataset[i], 'label_name', 'UNK')
+            dist[lab] += 1
+        dist_str = ", ".join([f"{k}:{v}" for k, v in list(dist.items())[:10]])
+        print(f"🔎 Class-balanced subset: {len(selected)}/{total} samples "
+              f"(classes={num_classes}, quota≈{per_class_quota}).")
+        print(f"   Sampled per-class (first 10): {dist_str}")
     else:
         dataloader = base_loader
         print(f"🔎 Using the full test set: {total} samples.")
+
 
     with torch.no_grad():
         evaluate(tokenizer, estimator, dataloader, device, save_dir, ode_steps=args.ode_steps)
