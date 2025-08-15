@@ -280,7 +280,9 @@ class ShapeTokenizer(nn.Module):
         for block in self.blocks:
             tokens = block(tokens, x_projected)
 
-        return self.output_proj(tokens)
+        token_out = self.output_proj(tokens)
+
+        return token_out
 
 # ========== Unit Test ==========
 
