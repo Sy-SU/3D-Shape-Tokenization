@@ -102,15 +102,21 @@ def visualize_recon_vs_gt(npy_dir, out_dir="outs/vis_compare", max_batches=10):
             ax2 = fig.add_subplot(122, projection='3d')
             plot_point_cloud(ax2, recon[i], title=f"Reconstruction\nCD = {cd:.6f}")
 
+            # 静态对比图：仍然一张 PNG
             png_path = os.path.join(out_dir, f"{batch_id}_{i:03d}.png")
-            gif_path = os.path.join(out_dir, f"{batch_id}_{i:03d}.gif")
-
             plt.savefig(png_path, dpi=300)
             plt.close(fig)
 
-            save_rotation_gif(recon[i], gif_path, title=f"Reconstruction\nCD = {cd:.6f}")
+            # === 新增 ===
+            # 为 GIF 分别保存 recon 与 gt 两个文件
+            recon_gif_path = os.path.join(out_dir, f"{batch_id}_{i:03d}_recon.gif")
+            gt_gif_path    = os.path.join(out_dir, f"{batch_id}_{i:03d}_gt.gif")
 
-            print(f"✅ Saved: {png_path}, {gif_path}")
+            # 动图：重建 & GT
+            save_rotation_gif(recon[i], recon_gif_path, title=f"Reconstruction\nCD = {cd:.6f}")
+            save_rotation_gif(gt[i],    gt_gif_path,    title="Ground Truth")
+
+            print(f"✅ Saved: {png_path}, {recon_gif_path}, {gt_gif_path}")
 
 
 # ========== 命令行入口 ==========
