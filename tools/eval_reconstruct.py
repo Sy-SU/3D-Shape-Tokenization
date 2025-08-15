@@ -22,6 +22,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
+import argparse
 
 # 添加 utils 模块所在路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -32,20 +33,28 @@ from datasets.dataloader import get_dataloader
 
 # ========== 设置全局保存目录时间戳 ==========
 TIMESTAMP = time.strftime("%Y%m%d_%H%M%S")
-SAVE_DIR = os.path.join("outs/reconstruct", TIMESTAMP)
+# SAVE_DIR = os.path.join("outs/reconstruct", TIMESTAMP)
 
 
 # ========== 加载模型结构和权重 ==========
-def load_models(device, tokenizer_ckpt='checkpoints/best_tokenizer.pt', estimator_ckpt='checkpoints/best_estimator.pt'):
+def load_models(device, num_tokens, d, d_f, tokenizer_ckpt='checkpoints/best_tokenizer.pt', estimator_ckpt='checkpoints/best_estimator.pt'):
     tokenizer = ShapeTokenizer(
-        num_tokens=32, d_in=3, d_f=128, n_heads=8,
-        num_frequencies=16, num_blocks=6
+        num_tokens=num_tokens,
+        d_in=3,
+        d_f=d_f,
+        d=d,
+        n_heads=8,
+        num_frequencies=16,
+        num_blocks=6
     ).to(device)
     tokenizer.load_state_dict(torch.load(tokenizer_ckpt))
     tokenizer.eval()
 
     estimator = VelocityEstimator(
-        d=128, num_frequencies=16, n_blocks=3
+        d=d,
+        d_f=d_f,
+        num_frequencies=16,
+        n_blocks=3
     ).to(device)
     estimator.load_state_dict(torch.load(estimator_ckpt))
     estimator.eval()
@@ -54,7 +63,7 @@ def load_models(device, tokenizer_ckpt='checkpoints/best_tokenizer.pt', estimato
 
 
 # ========== 重建函数（Heun ODE） ==========
-def decode_from_token(estimator, tokens, num_points=2048, steps=100):
+def decode_from_token(estimator, tokens, num_points=2048, steps=1000):
     """
     使用 Heun 方法从 shape token 中重建点云。
     参数:
@@ -109,16 +118,19 @@ def chamfer_distance(x: torch.Tensor, y: torch.Tensor) -> float:
     返回:
         float: chamfer distance
     """
-    x = x.unsqueeze(1)
-    y = y.unsqueeze(0)
-    dist = ((x - y) ** 2).sum(dim=2)
-    cd = dist.min(dim=1)[0].mean() + dist.min(dim=0)[0].mean()
+    d = torch.cdist(x, y, p=2)                  # 欧氏距离
+    d = d ** 2
+
+    # 对每个 batch 分别取最近点，再在 N/M 上平均，最后再在 batch 上平均
+    cd_xy = d.min(dim=2).values.mean(dim=1)     # x->y
+    cd_yx = d.min(dim=1).values.mean(dim=1)     # y->x
+    cd = (cd_xy + cd_yx).mean()
     return cd.item()
 
 
 # ========== 评估函数 ==========
-def evaluate(tokenizer, estimator, dataloader, device):
-    os.makedirs(SAVE_DIR, exist_ok=True)
+def evaluate(tokenizer, estimator, dataloader, device, save_dir):
+    os.makedirs(save_dir, exist_ok=True)
 
     # print(tokenizer)
     # print(estimator)
@@ -135,13 +147,14 @@ def evaluate(tokenizer, estimator, dataloader, device):
         tokens = tokenizer(gt)
         # print(f"tokens.shape = {tokens.shape}") #[B, K, D]
 
-        pred = decode_from_token(estimator, tokens, num_points=num_points, steps=100)
+        pred = decode_from_token(estimator, tokens, num_points=num_points, steps=1000)
+
 
         cd = chamfer_distance(pred, gt.cpu())
         cds.append(cd)
 
-        np.save(os.path.join(SAVE_DIR, f"{i:05d}_recon.npy"), pred.numpy())
-        np.save(os.path.join(SAVE_DIR, f"{i:05d}_gt.npy"), gt.cpu().numpy())
+        np.save(os.path.join(save_dir, f"{i:05d}_recon.npy"), pred.numpy())
+        np.save(os.path.join(save_dir, f"{i:05d}_gt.npy"), gt.cpu().numpy())
 
     avg_cd = sum(cds) / len(cds)
     print(f"✅ Chamfer Distance over {len(cds)} samples: {avg_cd:.6f}")
@@ -149,16 +162,35 @@ def evaluate(tokenizer, estimator, dataloader, device):
 
 # ========== 主入口 ==========
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="评估 ShapeTokenizer 与 VelocityEstimator 的重建性能")
+    parser.add_argument('--data_root', type=str, default='/root/autodl-fs/demo')
+    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--num_points', type=int, default=2048)
+    parser.add_argument('--num_workers', type=int, default=2)
+    parser.add_argument('--save_dir', type=str, default=None, help='保存输出目录，若为空则使用当前时间戳')
+    parser.add_argument('--num_tokens', type=int, default=32)
+    parser.add_argument('--d_f', type=int, default=512) # shape tokenizer 和 velocity estimator 中的隐藏维度
+    parser.add_argument('--d', type=int, default=64) # shape tokenizer 的输出维度, velocity estimator 中的输入维度, 表示 shape token 的维度
+    args = parser.parse_args()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tokenizer, estimator = load_models(device)
+    tokenizer, estimator = load_models(device, num_tokens=args.num_tokens, d_f=args.d_f, d=args.d)
+
+    if args.save_dir is None:
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        save_dir = os.path.join("outs/reconstruct", timestamp)
+    else:
+        save_dir = os.path.join("outs/reconstruct", args.save_dir)
 
     dataloader = get_dataloader(
-        root='/root/autodl-fs/ShapeNetCore.v2.PC15k',
+        root=args.data_root,
         split='test',
-        batch_size=4, #  每个批次的点云数量
-        num_points=256, #  每个点云每次取出的点数 2048
+        batch_size=args.batch_size,
+        num_points=args.num_points,
         shuffle=False,
-        num_workers=2
+        num_workers=args.num_workers
     )
+    
+    with torch.no_grad():
+        evaluate(tokenizer, estimator, dataloader, device, save_dir)
 
-    evaluate(tokenizer, estimator, dataloader, device)

@@ -129,9 +129,10 @@ class SelfAttentionBlock(nn.Module):
         - Linear_o 投影
         - Residual + FeedForward: LayerNorm → Linear → GELU → Linear → Residual
     """
-    def __init__(self, d_f, n_heads=8):
+    def __init__(self, d_f, d, n_heads=8):
         super().__init__()
         self.d_f = d_f
+        self.d = d
         self.n_heads = n_heads
         self.head_dim = d_f // n_heads
 
@@ -211,11 +212,11 @@ class TokenBlock(nn.Module):
     封装一个 block: CrossAttention + SelfAttention ×2
     每次迭代从点云提取信息并融合上下文
     """
-    def __init__(self, d_f, n_heads):
+    def __init__(self, d_f, d, n_heads):
         super().__init__()
         self.cross_attn = CrossAttentionBlock(d_f, n_heads)
-        self.self_attn1 = SelfAttentionBlock(d_f, n_heads)
-        self.self_attn2 = SelfAttentionBlock(d_f, n_heads)
+        self.self_attn1 = SelfAttentionBlock(d_f, d, n_heads)
+        self.self_attn2 = SelfAttentionBlock(d_f, d, n_heads)
 
     def forward(self, tokens, point_features):
         tokens = self.cross_attn(tokens, point_features)
@@ -241,10 +242,12 @@ class ShapeTokenizer(nn.Module):
         - 初始化 learnable tokens
         - 6 × (CrossAttentionBlock + SelfAttentionBlock × 2)
     """
-    def __init__(self, num_tokens: int = 32, d_in: int = 3, d_f: int = 128, n_heads: int = 8, num_frequencies: int = 16, num_blocks: int = 16):
+    def __init__(self, num_tokens: int = 32, d_in: int = 3, d_f: int = 512, d: int = 64, n_heads: int = 8, num_frequencies: int = 16, num_blocks: int = 16):
         super().__init__()
         self.k = num_tokens
         self.d_f = d_f
+        self.d = d
+        self.output_proj = nn.Linear(d_f, d)
 
         # Fourier 编码器 + 投影模块
         self.pos_encoder = FourierPositionalEncoding3D(num_frequencies=num_frequencies, include_input=True)
@@ -255,7 +258,7 @@ class ShapeTokenizer(nn.Module):
         self.token_embed = nn.Parameter(torch.randn(num_tokens, d_f))
 
         # 6 个重复 block
-        self.blocks = nn.ModuleList([TokenBlock(d_f, n_heads) for _ in range(num_blocks)])
+        self.blocks = nn.ModuleList([TokenBlock(d_f, d, n_heads) for _ in range(num_blocks)])
 
     def forward(self, x):
         """
@@ -277,7 +280,9 @@ class ShapeTokenizer(nn.Module):
         for block in self.blocks:
             tokens = block(tokens, x_projected)
 
-        return tokens
+        token_out = self.output_proj(tokens)
+
+        return token_out
 
 # ========== Unit Test ==========
 

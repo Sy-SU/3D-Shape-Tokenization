@@ -208,10 +208,14 @@ __marimo__/
 
 # dataset
 data/ShapeNetCore.v2.PC15k/
+data/demo/
 outs/
 
 # others
 tree.py
 tree.txt
 eval.py
+para.py
 logs/
+checkpoints/
+docs/

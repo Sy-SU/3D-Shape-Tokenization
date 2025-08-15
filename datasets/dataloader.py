@@ -84,7 +84,7 @@ def get_dataloader(root, split='train', batch_size=32, num_points=2048, shuffle=
 
 if __name__ == '__main__':
     # 用于测试 DataLoader 的主函数
-    root_dir = 'data/ShapeNetCore.v2.PC15k'
+    root_dir = '/root/autodl-fs/chair'
     split = 'train'
     batch_size = 20
     num_points = 1024
@@ -93,8 +93,24 @@ if __name__ == '__main__':
         root=root_dir, split=split, batch_size=batch_size, num_points=num_points)
 
     for i, batch in enumerate(dataloader):
+        points = batch['points']  # [B, num_points, 3]
+
+        # ===== 中心化到原点 =====
+        points -= points.mean(dim=1, keepdim=True)  # 按每个 shape 平移
+
+        # ===== 缩放到 [-0.5, 0.5] =====
+        max_abs = points.abs().max(dim=1, keepdim=True)[0]  # [B, 1, 3]
+        max_abs_val = max_abs.max(dim=2, keepdim=True)[0]   # [B, 1, 1]
+        points = points / (2 * max_abs_val.clamp(min=1e-8))
+
+        # ===== 断言范围 =====
+        assert torch.all(points >= -0.5 - 1e-6) and torch.all(points <= 0.5 + 1e-6), \
+            f"Point cloud out of range: min={points.min().item():.4f}, max={points.max().item():.4f}"
+
         print(f"\n=== Batch {i} ===")
-        print("points shape:", batch['points'].shape)  # 应该是 [B, 1024, 3]
+        print("points shape:", points.shape)  # 应该是 [B, num_points, 3]
         print("label names:", batch['label_name'])
+        print(f"range: [{points.min().item():.4f}, {points.max().item():.4f}]")
+
         if i >= 2:  # 只打印前3个 batch
             break
