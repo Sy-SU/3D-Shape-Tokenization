@@ -1,0 +1,36 @@
+site_name: 3D Shape Tokenization Wiki
+site_description: 项目文档
+site_url: https://sy-su.github.io/3D-Shape-Tokenization/
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+  language: zh
+nav:
+  - 首页: index.md
+  - 指南:
+    - 介绍: intro.md
+    - 快速上手: guide.md
+markdown_extensions:
+  - admonition            # 提示/警告块
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - toc:
+      permalink: true
+plugins:
+  - search
+extra:
+  social:
+    - icon: material/github
+      link: https://github.com/Sy-SU/3D-Shape-Tokenization
+extra_css:
+  - styles/extra.css      # 可选：自定义样式（放在 docs/styles/extra.css）
