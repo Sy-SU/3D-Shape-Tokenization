@@ -49,6 +49,18 @@ Demo 数据集包含的类别为: `02691156`, `02747177`, `03001627`, `04379243`
 
 ### 3.1 背景知识
 
+#### 3.1.1 位置编码器
+
+#### 3.1.2 时间编码器
+
+#### 3.1.3 自注意力模块
+
+#### 3.1.4 交叉注意力模块
+
+#### 3.1.5 自适应归一化层
+
+#### 3.1.6 Shift & Scale & Gating
+
 ### 3.2 Shape Tokenizer
 
 #### 3.2.1 简介
@@ -61,9 +73,31 @@ Shape Tokenizer 的结构如下图:
 
 ![Shape Tokenizer](/assets/shape_tokenizer.png)
 
+Shape Tokenizer 将点云编码为 $k$ 个 $d$ 维的 Shape Token。在 Shape Tokenizer 内部，Shape Token 的维度为 $d_f$。
 
+初始状态下，我们随机生成 $k$ 个 $d_f$ 维的 Shape Token，同时通过位置编码器将输入点云中的 $n$ 个点编码为 $d'$ 维的向量。我们使用 Shape Tokens 作为交叉注意力模块中的查询，位置编码作为键值，从点云中提取全局几何特征。同时使用残差连接、归一化和 MLP 来增强训练的稳定性, 经过交叉注意力模块后, 我们得到 $k$ 个 $d_f$ 维的 Shape Token。接着我们采用 2 个堆叠的自注意力模块，建立 Token 之间的依赖关系. 我们选择重复上述模块 6 次以达到细化 Token 表示的目的。最终经过一个线性层，我们得到 $k$ 个 $d$ 维的 Shape Token。它将作为后续 Velocity Estimator 的输入。
 
 ### 3.3 Velocity Estimator
+
+#### 3.3.1 简介
+
+Velocity Estimator 是模型的解码器，它的目标是将 Shape Token 解码为 3D 形状的表面点云。Velocity Estimator 的输入为 Shape Token、经过位置编码的点以及经过位置编码的时间步。**这是因为 Velocity Estimator 本质上是在学习每个点随时间步的运动情况。**
+
+#### 3.3.2 模型结构
+
+Velocity Estimator 的结构如下图:
+
+![Velocity Estimator](/assets/velocity_estimator.png)
+
+Velocity Estimator 接收 Shape Tokenizer 编码的 $k$ 个 $d$ 维的 Shape Token，同时通过位置编码器将当前时间步编码为 $d''$ 维的向量，将当前点的位置编码为 $d'$ 的向量。时间编码 $t_{emb}$ 首先经过线性层和 SiLU 激活函数，然后生成 Shift 向量和 Scale 向量，去指导位置编码 $x_emb$ 经过线性层与归一化层（自适应归一化层）后的调制，调制的结果作为交叉注意力模块的询问，Shape Tokens 作为键值，得到的结果经过 gating 后与归一化后的 $x_{emb}$ 进行残差连接，然后将交叉注意力模块换成一个多层感知机，重复相似过程。最终重复上述模块 3 次，得到在当前时间步下，特定点在 Shape Token 下的运动方向。
+
+> 在实现中, $d''$ 与 $d$ 的维度相同。
+
+> **自适应归一化层的结构仍需继续确认。**
+
+### 3.4 推理过程
+
+### 3.5 损失函数
 
 ## 4. 实验结果
 
