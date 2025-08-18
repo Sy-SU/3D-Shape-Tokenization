@@ -26,6 +26,9 @@ markdown_extensions:
   - pymdownx.tabbed
   - toc:
       permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - attr_list             # optional, but improves styling
 plugins:
   - search
 extra:
@@ -34,3 +37,5 @@ extra:
       link: https://github.com/Sy-SU/3D-Shape-Tokenization
 extra_css:
   - styles/extra.css      # 可选：自定义样式（放在 docs/styles/extra.css）
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
