@@ -71,7 +71,7 @@ Shape Tokenizer 相当于模型的编码器，它的目标是将 3D 形状 (本�
 
 Shape Tokenizer 的结构如下图:
 
-![Shape Tokenizer](/assets/shape_tokenizer.png)
+![Shape Tokenizer](assets/shape_tokenizer.png)
 
 Shape Tokenizer 将点云编码为 $k$ 个 $d$ 维的 Shape Token。在 Shape Tokenizer 内部，Shape Token 的维度为 $d_f$。
 
@@ -87,7 +87,7 @@ Velocity Estimator 是模型的解码器，它的目标是将 Shape Token 解码
 
 Velocity Estimator 的结构如下图:
 
-![Velocity Estimator](/assets/velocity_estimator.png)
+![Velocity Estimator](assets/velocity_estimator.png)
 
 Velocity Estimator 接收 Shape Tokenizer 编码的 $k$ 个 $d$ 维的 Shape Token，同时通过位置编码器将当前时间步编码为 $d''$ 维的向量，将当前点的位置编码为 $d'$ 的向量。时间编码 $t_{emb}$ 首先经过线性层和 SiLU 激活函数，然后生成 Shift 向量和 Scale 向量，去指导位置编码 $x_emb$ 经过线性层与归一化层（自适应归一化层）后的调制，调制的结果作为交叉注意力模块的询问，Shape Tokens 作为键值，得到的结果经过 gating 后与归一化后的 $x_{emb}$ 进行残差连接，然后将交叉注意力模块换成一个多层感知机，重复相似过程。最终重复上述模块 3 次，得到在当前时间步下，特定点在 Shape Token 下的运动方向。
 
