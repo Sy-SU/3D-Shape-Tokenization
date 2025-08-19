@@ -124,6 +124,7 @@ D_{\mathrm{KL}}\big(q_\theta(s \mid Y) \,\|\, p(s)\big)
 \]
 
 它等价于:
+
 \[
 \frac{1}{2} \left\| \mu_\theta(Y) \right\|_2^2
 \]
