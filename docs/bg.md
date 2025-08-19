@@ -84,6 +84,7 @@ y = \gamma \cdot \text{LN}(x) + \beta.
 
 对于输入特征 $x \in \mathbb{R}^d$，首先通过 LayerNorm 或 AdaLayerNorm 得到归一化结果 $x_{\text{norm}}$。  
 接着利用时间嵌入 $t_{\text{emb}}$ 生成两个向量：
+
 \[
 \text{shift} = W_{\text{shift}} \, t_{\text{emb}}, 
 \quad
@@ -91,6 +92,7 @@ y = \gamma \cdot \text{LN}(x) + \beta.
 \]
 
 然后对归一化后的特征进行调制：
+
 \[
 x' = x_{\text{norm}} \cdot (1 + \text{scale}) + \text{shift}.
 \]
@@ -101,11 +103,13 @@ x' = x_{\text{norm}} \cdot (1 + \text{scale}) + \text{shift}.
 ### 2. Gating
 
 除了 Shift & Scale 外，模型还引入了 **门控（Gating）机制**，即通过一个 sigmoid 激活函数将时间嵌入映射到 $[0,1]$ 范围：
+
 \[
 g = \sigma(W_{\text{gate}} \, t_{\text{emb}}),
 \]
 
 并将其作用在输出上：
+
 \[
 h = f(x') \cdot g,
 \]
