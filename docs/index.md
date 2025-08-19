@@ -47,27 +47,13 @@ Demo 数据集包含的类别为: `02691156`, `02747177`, `03001627`, `04379243`
 
 ## 3. 实验方法
 
-### 3.1 背景知识
+### 3.1 Shape Tokenizer
 
-#### 3.1.1 位置编码器
-
-#### 3.1.2 时间编码器
-
-#### 3.1.3 自注意力模块
-
-#### 3.1.4 交叉注意力模块
-
-#### 3.1.5 自适应归一化层
-
-#### 3.1.6 Shift & Scale & Gating
-
-### 3.2 Shape Tokenizer
-
-#### 3.2.1 简介
+#### 3.1.1 简介
 
 Shape Tokenizer 相当于模型的编码器，它的目标是将 3D 形状 (本实验中为点云) 映射到低维的潜在表示，这些潜在表示也将用作后续 Velocity Estimator 的输入，它们用于描述 3D 形状的概率分布。
 
-#### 3.2.2 模型结构
+#### 3.1.2 模型结构
 
 Shape Tokenizer 的结构如下图:
 
@@ -77,13 +63,13 @@ Shape Tokenizer 将点云编码为 $k$ 个 $d$ 维的 Shape Token。在 Shape To
 
 初始状态下，我们随机生成 $k$ 个 $d_f$ 维的 Shape Token，同时通过位置编码器将输入点云中的 $n$ 个点编码为 $d'$ 维的向量。我们使用 Shape Tokens 作为交叉注意力模块中的查询，位置编码作为键值，从点云中提取全局几何特征。同时使用残差连接、归一化和 MLP 来增强训练的稳定性, 经过交叉注意力模块后, 我们得到 $k$ 个 $d_f$ 维的 Shape Token。接着我们采用 2 个堆叠的自注意力模块，建立 Token 之间的依赖关系. 我们选择重复上述模块 6 次以达到细化 Token 表示的目的。最终经过一个线性层，我们得到 $k$ 个 $d$ 维的 Shape Token。它将作为后续 Velocity Estimator 的输入。
 
-### 3.3 Velocity Estimator
+### 3.2 Velocity Estimator
 
-#### 3.3.1 简介
+#### 3.2.1 简介
 
 Velocity Estimator 是模型的解码器，它的目标是将 Shape Token 解码为 3D 形状的表面点云。Velocity Estimator 的输入为 Shape Token、经过位置编码的点以及经过位置编码的时间步。**这是因为 Velocity Estimator 本质上是在学习每个点随时间步的运动情况。**
 
-#### 3.3.2 模型结构
+#### 3.2.2 模型结构
 
 Velocity Estimator 的结构如下图:
 
@@ -95,9 +81,9 @@ Velocity Estimator 接收 Shape Tokenizer 编码的 $k$ 个 $d$ 维的 Shape Tok
 
 > **自适应归一化层的结构仍需继续确认。**
 
-### 3.4 推理过程
+### 3.3 推理过程
 
-### 3.5 损失函数
+### 3.4 损失函数
 
 ## 4. 实验结果
 

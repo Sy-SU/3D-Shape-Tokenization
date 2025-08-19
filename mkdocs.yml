@@ -16,6 +16,7 @@ theme:
 nav:
   - 首页: index.md
   - 指南:
+    - 背景知识: bg.md
     - 复现指南: guide.md
     - 代码结构: code.md
 markdown_extensions:
