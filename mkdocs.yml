@@ -16,8 +16,8 @@ theme:
 nav:
   - 首页: index.md
   - 指南:
-    - 介绍: intro.md
-    - 快速上手: guide.md
+    - 复现指南: guide.md
+    - 代码结构: code.md
 markdown_extensions:
   - admonition            # 提示/警告块
   - pymdownx.details
