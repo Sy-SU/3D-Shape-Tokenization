@@ -81,9 +81,56 @@ Velocity Estimator 接收 Shape Tokenizer 编码的 $k$ 个 $d$ 维的 Shape Tok
 
 > **自适应归一化层的结构仍需继续确认。**
 
-### 3.3 推理过程
+### 3.3 Flow Matching
+
+通过 Shape Tokenizer 和 Velocity Estimator，我们可以得到在任意时间步下，特定点在 Shape Token 引导下的运动方向。我们初始化一个随机噪声 $x_0 \in \mathbf{R}^{n \times 3}$，通过以下公式计算点云最终的位置 $x_1$:
+
+$$x_1 = x_0 + \int_{0}^{1}v_{\theta}(x_t;s,t) \mathrm{d} t$$
+
+其中 $v_{\theta}(x_t;s,t)$ 为 Velocity Estimator 在时间步 $t$ 下，点 $x_t$ 的运动方向。我们通过 Heun 积分方法近似上述表达式的数值：
+
+- 设时间步之间的间隔为 $h$。对于每一个时间步 $t$，先计算 $v_1 = v_{\theta}(x_t;s,t)$，令 $\tilde{x} \leftarrow x_t + h \cdot v_1$。
+- 然后计算 $v_2 = v_{\theta}(\tilde{x};s,t+h)$，令 $x_{t+1} \leftarrow x_t + \frac{h}{2} \cdot (v_1 + v_2)$。
+- 令 $t \leftarrow t + h$，重复上述过程，直到 $t = 1$。
 
 ### 3.4 损失函数
+
+损失函数由 $3$ 部分组成，分别为重建损失、一致性正则和先验正则。
+
+重建损失的表达式为：
+\[
+\mathcal{L}_{\text{flow}} = \mathbb{E}_{t, x_0, x_1} \left[ \left\| v_\theta(x_t; s, t) - \dot{\alpha}_t x - \dot{\sigma}_t \epsilon \right\|^2 \right].
+\]
+
+为了让同一形状的不同子采样 $Y, Z$ 得到的一致的 tokens，我们希望 $q_\theta(s \mid Y)$ 与 $p_\theta(s \mid Z)$ 尽可能接近。我们使用 KL 散度作为一致性正则。我们设 $q_\theta(s \mid Y)$ 与 $p_\theta(s \mid Z)$ 为高斯分布：
+\[
+q_\theta(s \mid Y) = \mathcal{N}(\mu_\theta(Y), \sigma^2 I), \quad 
+p_\theta(s \mid Z) = \mathcal{N}(\mu_\theta(Z), \sigma^2 I).
+\]  
+
+我们可以得到：
+
+\[
+D_{\mathrm{KL}}\big(\mathcal{N}(\mu_Y, \sigma^2 I) \,\|\, \mathcal{N}(\mu_Z, \sigma^2 I)\big) 
+\propto \frac{1}{2\sigma^2} \left\| \mu_Y - \mu_Z \right\|_2^2.
+\]
+
+此外，我们通过 $p(S) = \mathcal{N}(0, I)$ 的约束让 token 不发散，我们加上先验正则:
+
+\[
+D_{\mathrm{KL}}\big(q_\theta(s \mid Y) \,\|\, p(s)\big)
+\]
+
+它等价于:
+\[
+\frac{1}{2} \left\| \mu_\theta(Y) \right\|_2^2
+\]
+
+综上，我们的损失函数的表达式为：
+
+\[
+\boxed{ \mathcal{L} = \mathcal{L}_{\text{flow}} + \lambda_1 \left\| \mu_Y - \mu_Z \right\|_2^2 + \lambda_2 \left\| \mu_\theta(Y) \right\|_2^2. }
+\]
 
 ## 4. 实验结果
 
