@@ -193,7 +193,7 @@ class VelocityEstimatorBlock(nn.Module):
     def __init__(self, d, d_f, pe_dim):
         super().__init__()
         self.point_proj = nn.Linear(pe_dim, d_f)
-        self.layernorm1 = nn.LayerNorm(d_f)
+        self.layernorm1 = AdaLayerNorm(d_f, d_f)
         self.shift1 = nn.Linear(d, d_f)
         self.scale1 = nn.Linear(d, d_f)
         self.gate1 = nn.Linear(d, d_f)
@@ -220,38 +220,38 @@ class VelocityEstimatorBlock(nn.Module):
             Tensor[B, d]，预测的点速度特征
         """
         # 调制 query
-        x_proj = self.point_proj(x_pe)         # [B, d]
-        x_norm = self.layernorm1(x_proj)       # [B, d]
-        shift1 = self.shift1(t_emb)            # [B, d]
-        scale1 = self.scale1(t_emb)            # [B, d]
-        query = x_norm * (1 + scale1) + shift1  # [B, d]
+        x_proj = self.point_proj(x_pe)         # [B, d_f]
+        x_norm = self.layernorm1(x_proj, x_proj)       # [B, d_f]
+        shift1 = self.shift1(t_emb)            # [B, d_f]
+        scale1 = self.scale1(t_emb)            # [B, d_f]
+        query = x_norm * (1 + scale1) + shift1  # [B, d_f]
 
         # Cross Attention
-        attn_out = self.cross_attn(query, s)   # [B, d]
+        attn_out = self.cross_attn(query, s)   # [B, d_f]
 
         # Gating 1（乘以 sigmoid）
         gate1 = torch.sigmoid(self.gate1(t_emb))
         # print(f"attn_out 的维度 {attn_out.shape}")
         # print(f"gate1 的维度 {gate1.shape}")
-        h = attn_out * gate1                   # [B, d]
+        h = attn_out * gate1                   # [B, d_f]
 
         # 与 x_norm 残差连接
-        h = h + x_norm                         # [B, d]
+        h = h + x_norm                         # [B, d_f]
 
         # print(f"t_emb 的维度 {t_emb.shape}")
         # print(f"h 的维度 {h.shape}")
 
         # LayerNorm 后进行 shift2, scale2, gate2 调制
         # h2 = self.layernorm2(h, t_emb)               # [B, d]
-        shift2 = self.shift2(t_emb)            # [B, d]
-        scale2 = self.scale2(t_emb)            # [B, d]
+        shift2 = self.shift2(t_emb)            # [B, d_f]
+        scale2 = self.scale2(t_emb)            # [B, d_f]
         h2 = self.layernorm2(h, t_emb)
         h2 = h2 * (1 + scale2) + shift2
 
-        h2 = self.mlp(h2)                      # [B, d]
-        gate2 = torch.sigmoid(self.gate2(t_emb))  # [B, d]
-        h2 = h2 * (1 + scale2) + shift2        # [B, d]
-        h2 = h2 * gate2                        # [B, d]
+        h2 = self.mlp(h2)                      # [B, d_f]
+        gate2 = torch.sigmoid(self.gate2(t_emb))  # [B, d_f]
+        h2 = h2 * (1 + scale2) + shift2        # [B, d_f]
+        h2 = h2 * gate2                        # [B, d_f]
 
         out = h + h2
 
