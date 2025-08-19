@@ -4,7 +4,7 @@ site_url: https://sy-su.github.io/3D-Shape-Tokenization/
 theme:
   name: material
   features:
-    - navigation.instant
+    # - navigation.instant
     - navigation.tracking
     - navigation.sections
     - navigation.top
