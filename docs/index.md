@@ -98,11 +98,13 @@ $$x_1 = x_0 + \int_{0}^{1}v_{\theta}(x_t;s,t) \mathrm{d} t$$
 损失函数由 $3$ 部分组成，分别为重建损失、一致性正则和先验正则。
 
 重建损失的表达式为：
+
 \[
 \mathcal{L}_{\text{flow}} = \mathbb{E}_{t, x_0, x_1} \left[ \left\| v_\theta(x_t; s, t) - \dot{\alpha}_t x - \dot{\sigma}_t \epsilon \right\|^2 \right].
 \]
 
 为了让同一形状的不同子采样 $Y, Z$ 得到的一致的 tokens，我们希望 $q_\theta(s \mid Y)$ 与 $p_\theta(s \mid Z)$ 尽可能接近。我们使用 KL 散度作为一致性正则。我们设 $q_\theta(s \mid Y)$ 与 $p_\theta(s \mid Z)$ 为高斯分布：
+
 \[
 q_\theta(s \mid Y) = \mathcal{N}(\mu_\theta(Y), \sigma^2 I), \quad 
 p_\theta(s \mid Z) = \mathcal{N}(\mu_\theta(Z), \sigma^2 I).
