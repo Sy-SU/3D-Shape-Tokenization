@@ -14,4 +14,4 @@ python tools/train.py \
   --num_tokens 32 \
   --kl_weight 1e-3 \
   --kl_prior_weight 1e-4\
-  --data_root ~/autodl-fs/demo 
+  --data_root ~/autodl-fs/demo
