@@ -4,7 +4,7 @@
 
 3D Shape Tokenization 是 Apple 公司在 ["3D Shape Tokenization via Latent Flow Matching"](https://arxiv.org/abs/2412.15618) 中提出的一种将 3D 形状转换为低维表示的方法，并称之为 Shape Token。
 
-在传统的 3D 形状表示方法中，3D 形状通常被表示为点云、网格或者是体素等形式。但是这些表示方法难以同时满足连续、紧凑与预处理少这三个要求 (TODO: 为什么?)。于是，Apple 公司提出了一种通过flow matching学习3D形状的**共享潜空间**的方法来满足以上特性。根据论文报告，这种表示方法除了满足连续、紧凑等特性，同时只需要从3D形状的表面采样一定的点云，此外还具有一定的几何能力 (TODO: 具体是什么?)。
+在传统的 3D 形状表示方法中，3D 形状通常被表示为点云、网格或者是体素等形式。但是这些表示方法难以同时满足连续、紧凑与预处理少这三个要求 (TODO: 为什么?)。于是，Apple 公司提出了一种通过f low matching 学习 3D 形状的**共享潜空间**的方法来满足以上特性。根据论文报告，这种表示方法除了满足连续、紧凑等特性，同时只需要从 3D 形状的表面采样一定的点云，此外还具有一定的几何能力 (TODO: 具体是什么?)。
 
 ## 2. 数据集简介
 
@@ -61,7 +61,7 @@ Shape Tokenizer 的结构如下图:
 
 Shape Tokenizer 将点云编码为 $k$ 个 $d$ 维的 Shape Token。在 Shape Tokenizer 内部，Shape Token 的维度为 $d_f$。
 
-初始状态下，我们随机生成 $k$ 个 $d_f$ 维的 Shape Token，同时通过[位置编码器](bg.md/#-位置编码器)将输入点云中的 $n$ 个点编码为 $d'$ 维的向量。我们使用 Shape Tokens 作为[交叉注意力模块](bg.md/#-交叉注意力模块)中的查询，位置编码作为键值，从点云中提取全局几何特征。同时使用残差连接、归一化和 MLP 来增强训练的稳定性, 经过交叉注意力模块后, 我们得到 $k$ 个 $d_f$ 维的 Shape Token。接着我们采用 2 个堆叠的[自注意力模块](bg.md/#-自注意力模块)来进一步提取局部几何特征。最后我们通过一个线性层将 $k$ 个 $d_f$ 维的 Shape Token 映射为 $k$ 个 $d$ 维的 Shape Token。，建立 Token 之间的依赖关系. 我们选择重复上述模块 6 次以达到细化 Token 表示的目的。最终经过一个线性层，我们得到 $k$ 个 $d$ 维的 Shape Token。它将作为后续 Velocity Estimator 的输入。
+初始状态下，我们随机生成 $k$ 个 $d_f$ 维的 Shape Token，同时通过[位置编码器](bg.md/#-位置编码器)将输入点云中的 $n$ 个点编码为 $d'$ 维的向量。我们使用 Shape Tokens 作为交叉注意力模块中的查询，位置编码作为键值，从点云中提取全局几何特征。同时使用残差连接、归一化和 MLP 来增强训练的稳定性, 经过交叉注意力模块后, 我们得到 $k$ 个 $d_f$ 维的 Shape Token。接着我们采用 2 个堆叠的自注意力模块来进一步提取局部几何特征。最后我们通过一个线性层将 $k$ 个 $d_f$ 维的 Shape Token 映射为 $k$ 个 $d$ 维的 Shape Token。，建立 Token 之间的依赖关系. 我们选择重复上述模块 6 次以达到细化 Token 表示的目的。最终经过一个线性层，我们得到 $k$ 个 $d$ 维的 Shape Token。它将作为后续 Velocity Estimator 的输入。
 
 ### 3.2 Velocity Estimator
 
@@ -83,7 +83,7 @@ Velocity Estimator 接收 Shape Tokenizer 编码的 $k$ 个 $d$ 维的 Shape Tok
 
 ### 3.3 Flow Matching
 
-通过 Shape Tokenizer 和 Velocity Estimator，我们可以得到在任意时间步下，特定点在 Shape Token 引导下的运动方向。我们初始化一个随机噪声 $x_0 \in \mathbf{R}^{n \times 3}$，通过以下公式计算点云最终的位置 $x_1$:
+通过 Shape Tokenizer 和 Velocity Estimator，我们可以得到在任意时间步下，特定点在 Shape Token 引导下的运动方向。我们初始化一个随机噪声 $x_0 \in \mathbb{R}^{n \times 3}$，通过以下公式计算点云最终的位置 $x_1$:
 
 $$x_1 = x_0 + \int_{0}^{1}v_{\theta}(x_t;s,t) \mathrm{d} t$$
 
@@ -138,11 +138,3 @@ D_{\mathrm{KL}}\big(q_\theta(s \mid Y) \,\|\, p(s)\big)
 ## 4. 实验结果
 
 ## 5. 分析与讨论
-
-## 6. 附录
-
-### 6.1 复现指南
-
-### 6.2 代码结构
-
-### 6.3 参考资料
