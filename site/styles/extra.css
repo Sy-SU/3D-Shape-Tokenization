@@ -1,0 +1,10 @@
+/* docs/styles/extra.css */
+.mdx-hero {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 960px) {
+  .mdx-hero { grid-template-columns: 1.2fr 1fr; align-items: center; }
+}
+.mdx-hero__image img { max-width: 100%; border-radius: 12px; }

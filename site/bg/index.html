@@ -1,0 +1,1009 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="项目文档">
+      
+      
+      
+        <link rel="canonical" href="https://sy-su.github.io/3D-Shape-Tokenization/bg/">
+      
+      
+        <link rel="prev" href="../report/">
+      
+      
+        <link rel="next" href="../guide/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.17">
+    
+    
+      
+        <title>背景知识 - 3D Shape Tokenization Wiki</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e37652d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../styles/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="3D Shape Tokenization Wiki" class="md-header__button md-logo" aria-label="3D Shape Tokenization Wiki" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            3D Shape Tokenization Wiki
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              背景知识
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="3D Shape Tokenization Wiki" class="md-nav__button md-logo" aria-label="3D Shape Tokenization Wiki" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    3D Shape Tokenization Wiki
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    首页
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    指南
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            指南
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    实验报告
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    背景知识
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    背景知识
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-3d" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. 3D 表示方法概述
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 3D 表示方法概述">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.1 体素
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.2 网格
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.3 点云
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      位置编码器与时间编码器
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="位置编码器与时间编码器">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      位置编码器
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="位置编码器">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      动机
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      方法
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      时间编码器
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="时间编码器">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      动机
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      方法
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adaptive-layer-normalization-adaln" class="md-nav__link">
+    <span class="md-ellipsis">
+      自适应归一化层（Adaptive Layer Normalization, AdaLN）
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="自适应归一化层（Adaptive Layer Normalization, AdaLN）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layer-normalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      标准 Layer Normalization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      自适应归一化层
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shift-scale-gating" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shift &amp; Scale &amp; Gating
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shift &amp; Scale &amp; Gating">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-shift-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Shift &amp; Scale
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-gating" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Gating
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    复现指南
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    代码结构
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-3d" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. 3D 表示方法概述
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 3D 表示方法概述">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.1 体素
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.2 网格
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13" class="md-nav__link">
+    <span class="md-ellipsis">
+      1.3 点云
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      位置编码器与时间编码器
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="位置编码器与时间编码器">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      位置编码器
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="位置编码器">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      动机
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      方法
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      时间编码器
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="时间编码器">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      动机
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      方法
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adaptive-layer-normalization-adaln" class="md-nav__link">
+    <span class="md-ellipsis">
+      自适应归一化层（Adaptive Layer Normalization, AdaLN）
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="自适应归一化层（Adaptive Layer Normalization, AdaLN）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#layer-normalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      标准 Layer Normalization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      自适应归一化层
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shift-scale-gating" class="md-nav__link">
+    <span class="md-ellipsis">
+      Shift &amp; Scale &amp; Gating
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shift &amp; Scale &amp; Gating">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-shift-scale" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Shift &amp; Scale
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-gating" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Gating
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="_1">背景知识<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<h2 id="1-3d">1. 3D 表示方法概述<a class="headerlink" href="#1-3d" title="Permanent link">&para;</a></h2>
+<p><img alt="可视化" src="../assets/sphere_vis.png" /></p>
+<h3 id="11">1.1 体素<a class="headerlink" href="#11" title="Permanent link">&para;</a></h3>
+<p>体素是三维空间中的像素，与二维图像中的像素类似，但增加了深度维度。在一个三维的形状中，每个体素用来表示这个位置是否被形状占据。</p>
+<ul>
+<li>优点：直观，易于理解</li>
+<li>缺点：储存 voxel 的空间复杂度是 <span class="arithmatex">\(O(n^3)\)</span>，通常计算复杂度较高。</li>
+</ul>
+<h3 id="12">1.2 网格<a class="headerlink" href="#12" title="Permanent link">&para;</a></h3>
+<p>网格使用点、线、面来描述 3D 形状。</p>
+<ul>
+<li>优点：紧凑、直观，适合渲染处理</li>
+<li>缺点：依赖拓扑结构，通常需要 watertight mesh，需要较为复杂的预处理</li>
+</ul>
+<h3 id="13">1.3 点云<a class="headerlink" href="#13" title="Permanent link">&para;</a></h3>
+<p>点云由一组离散的点组成，用来描述在 3D 形状上的点。</p>
+<ul>
+<li>优点：无需拓扑结构，无需预处理，表示灵活。</li>
+<li>缺点：点云的表示是离散、稀疏的，缺乏连续性。</li>
+</ul>
+<hr />
+<hr />
+<hr />
+<h2 id="_2">位置编码器与时间编码器<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<h3 id="_3">位置编码器<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<h4 id="_4">动机<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h4>
+<p>普通的 MLP 或线性层在处理输入时，对高频信息的建模能力较弱。为了让模型能够捕捉局部几何的细节，我们需要引入多尺度的正弦/余弦函数，将输入坐标映射到更高维空间。这种方法本质上是<strong>傅里叶特征映射</strong>。</p>
+<h4 id="_5">方法<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h4>
+<p>对于给定的位置 <span class="arithmatex">\(x \in \mathbb{R}\)</span> 和频率数量 <span class="arithmatex">\(L\)</span>，位置编码定义为：</p>
+<div class="arithmatex">\[
+\gamma(x) = \big(x,\ \sin(2^0 \pi x), \cos(2^0 \pi x), \ldots, \sin(2^{L-1}\pi x), \cos(2^{L-1}\pi x)\big).
+\]</div>
+<p>不同频率的正弦/余弦项可以让模型感知到从低频到高频的几何变化，从而提升对复杂表面形状的表达能力。
+在三维点云中，我们对 <span class="arithmatex">\((x,y,z)\)</span> 的每一维分别做 Fourier 映射，再拼接得到高维的点位置编码。</p>
+<h3 id="_6">时间编码器<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<h4 id="_7">动机<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h4>
+<p>在流匹配中，点的运动轨迹与时间步 <span class="arithmatex">\(t\)</span> 强相关。为了让模型能够理解“在不同时间步点应如何流动”，我们同样需要一种多尺度的时间表示。</p>
+<h4 id="_8">方法<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h4>
+<p>对于给定的时间 <span class="arithmatex">\(t \in [0,1]\)</span> 和频率数量 <span class="arithmatex">\(L\)</span>，时间编码为：</p>
+<div class="arithmatex">\[
+\gamma(t) = \big(\sin(2^0 \pi t), \cos(2^0 \pi t), \ldots, \sin(2^{L-1}\pi t), \cos(2^{L-1}\pi t)\big).
+\]</div>
+<p>与位置编码类似，不同频率的分量让模型同时感知短程和长程的时间依赖。</p>
+<blockquote>
+<p>在实现过程中，时间编码器与 <code>Linear+SiLU+Linear</code> 的结构共同封装在 <code>TimeEncoder</code> 内。</p>
+</blockquote>
+<hr />
+<h2 id="adaptive-layer-normalization-adaln">自适应归一化层（Adaptive Layer Normalization, AdaLN）<a class="headerlink" href="#adaptive-layer-normalization-adaln" title="Permanent link">&para;</a></h2>
+<p>在流匹配中，输入不仅包含点的坐标特征 <span class="arithmatex">\(x\)</span>，还依赖例如时间步 <span class="arithmatex">\(t\)</span> 等额外的条件变量。不同时间下，数据分布差异显著。若仅使用固定参数的<strong>标准 Layer Normalization</strong>，模型难以同时适配所有时间分布。
+因此，我们引入<strong>自适应归一化层（AdaLN）</strong>，使归一化过程能够随条件动态调节。</p>
+<h3 id="layer-normalization">标准 Layer Normalization<a class="headerlink" href="#layer-normalization" title="Permanent link">&para;</a></h3>
+<p>给定输入 <span class="arithmatex">\(x \in \mathbb{R}^d\)</span>，标准 LayerNorm 的计算过程为：</p>
+<div class="arithmatex">\[
+\text{LN}(x) = \frac{x - \mu}{\sigma}, \quad 
+\mu = \tfrac{1}{d}\sum_{i=1}^d x_i,\ 
+\sigma = \sqrt{\tfrac{1}{d}\sum_{i=1}^d (x_i-\mu)^2}.
+\]</div>
+<p>通常会再引入可学习的缩放与偏移参数 <span class="arithmatex">\(\gamma, \beta\)</span>：</p>
+<div class="arithmatex">\[
+y = \gamma \cdot \text{LN}(x) + \beta.
+\]</div>
+<p>这里的 <span class="arithmatex">\(\gamma,\beta\)</span> 是与输入无关的全局参数。</p>
+<h3 id="_9">自适应归一化层<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<p>在 <strong>AdaLN</strong> 中，缩放与偏移不再是固定参数，而是由<strong>条件向量</strong>（在流匹配中即时间嵌入 <span class="arithmatex">\(t_{\text{emb}}\)</span>）动态生成：</p>
+<div class="arithmatex">\[
+\gamma = W_{\text{scale}} \, t_{\text{emb}}, \quad 
+\beta = W_{\text{shift}} \, t_{\text{emb}}.
+\]</div>
+<p>于是有：</p>
+<div class="arithmatex">\[
+\text{AdaLN}(x, t_{\text{emb}}) = \text{LN}(x) \cdot (1+\gamma) + \beta.
+\]</div>
+<hr />
+<h2 id="shift-scale-gating">Shift &amp; Scale &amp; Gating<a class="headerlink" href="#shift-scale-gating" title="Permanent link">&para;</a></h2>
+<p>在流匹配（Flow Matching）的 Velocity Estimator 中，除了基本的归一化外，还引入了 <strong>Shift、Scale 和 Gating</strong> 机制，用于根据时间步 <span class="arithmatex">\(t\)</span> 对特征进行动态调制。</p>
+<h3 id="1-shift-scale">1. Shift &amp; Scale<a class="headerlink" href="#1-shift-scale" title="Permanent link">&para;</a></h3>
+<p>对于输入特征 <span class="arithmatex">\(x \in \mathbb{R}^d\)</span>，首先通过 LayerNorm 或 AdaLayerNorm 得到归一化结果 <span class="arithmatex">\(x_{\text{norm}}\)</span>。<br />
+接着利用时间嵌入 <span class="arithmatex">\(t_{\text{emb}}\)</span> 生成两个向量：</p>
+<div class="arithmatex">\[
+\text{shift} = W_{\text{shift}} \, t_{\text{emb}}, 
+\quad
+\text{scale} = W_{\text{scale}} \, t_{\text{emb}},
+\]</div>
+<p>然后对归一化后的特征进行调制：</p>
+<div class="arithmatex">\[
+x' = x_{\text{norm}} \cdot (1 + \text{scale}) + \text{shift}.
+\]</div>
+<p>这样，特征的分布会随着时间步 <span class="arithmatex">\(t\)</span> 的变化而自适应地调整。</p>
+<h3 id="2-gating">2. Gating<a class="headerlink" href="#2-gating" title="Permanent link">&para;</a></h3>
+<p>除了 Shift &amp; Scale 外，模型还引入了 <strong>门控（Gating）机制</strong>，即通过一个 sigmoid 激活函数将时间嵌入映射到 <span class="arithmatex">\([0,1]\)</span> 范围：</p>
+<div class="arithmatex">\[
+g = \sigma(W_{\text{gate}} \, t_{\text{emb}}),
+\]</div>
+<p>并将其作用在输出上：</p>
+<div class="arithmatex">\[
+h = f(x') \cdot g,
+\]</div>
+<p>其中 <span class="arithmatex">\(f(\cdot)\)</span> 表示 Cross Attention 或 MLP 等子模块的输出。</p>
+<p>门控机制的作用是 <strong>控制信息流的强弱</strong>：<br />
+- <span class="arithmatex">\(g \approx 0\)</span> 时，抑制该时间步的特征；<br />
+- <span class="arithmatex">\(g \approx 1\)</span> 时，完全保留该时间步的特征；<br />
+- <span class="arithmatex">\(g\)</span> 在 <span class="arithmatex">\((0,1)\)</span> 之间时，相当于“软选择”，灵活调节特征强度。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/Sy-SU/3D-Shape-Tokenization" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33s1.71.11 2.5.33c1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tracking", "navigation.sections", "navigation.top", "content.code.copy", "content.tabs.link", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.92b07e13.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

@@ -14,12 +14,14 @@ theme:
     - search.highlight
   language: zh
 nav:
-  - 首页: index.md
+  - 首页: index.html
   - 指南:
+    - 实验报告: report.md
     - 背景知识: bg.md
     - 复现指南: guide.md
-    - 代码结构: code.md
+    # - 代码结构: code.md
 markdown_extensions:
+  - meta
   - admonition            # 提示/警告块
   - pymdownx.details
   - pymdownx.highlight

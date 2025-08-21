@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3D Shape Tokenization</title>
+  <style>
+    :root{
+      --bg:#f7f7f8; --card:#fff; --text:#111; --muted:#666;
+      --ring:rgba(0,0,0,.06);
+      --shadow:0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.08);
+      --radius:16px; --gap:clamp(12px, 2.2vw, 22px); --pad:clamp(14px, 2.6vw, 24px);
+      --tag-bg:rgba(0,0,0,.7); --tag-text:#fff; --brand:#3f51b5;
+      --brand-2:#6a7be8;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0f1115; --card:#141821; --text:#e9ecf1; --muted:#a8b0bd;
+        --ring:rgba(255,255,255,.08);
+        --shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 30px rgba(0,0,0,.55);
+        --tag-bg:rgba(255,255,255,.14); --tag-text:#e9ecf1; --brand:#7c8cf7; --brand-2:#9aa6ff;
+      }
+      img{ filter:none; }
+    }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+
+      /* 渐变只放在 background-image，且不重复 */
+      background-image:
+        radial-gradient(1200px 800px at 10% -10%, rgba(0,0,0,.05), transparent 55%),
+        radial-gradient(1200px 800px at 110% 10%, rgba(0,0,0,.05), transparent 55%);
+      background-repeat: no-repeat, no-repeat;
+      color:var(--text);
+      line-height:1.6;
+    }
+
+    /* 顶部导航 */
+    .topbar{
+      position:sticky; top:0; z-index:20;
+      background:var(--brand); color:#fff;
+      box-shadow:0 2px 10px rgba(0,0,0,.12);
+    }
+    .topbar .inner{
+      max-width:1200px; margin:0 auto; padding:10px 16px;
+      display:flex; align-items:center; gap:14px;
+    }
+    .logo{ display:inline-flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.2px }
+    .logo span{ opacity:.95 }
+    .nav{ margin-left:auto; display:flex; gap:10px; flex-wrap:wrap }
+    .nav a{
+      color:#fff; text-decoration:none; padding:6px 10px; border-radius:10px; opacity:.95;
+    }
+    .nav a:hover{ background:rgba(255,255,255,.15) }
+    .nav a.icon{ padding:6px; display:inline-flex; align-items:center; justify-content:center }
+    .nav a.icon svg{ width:20px; height:20px; fill:#fff; opacity:.95 }
+    .nav a.icon:hover{ background:rgba(255,255,255,.15) }
+
+    /* 容器 */
+    .wrap{ max-width:1200px; margin:0 auto; padding: clamp(18px, 3.6vw, 40px) 16px 56px }
+
+    /* Hero */
+    .hero{
+      display:grid; gap:20px; grid-template-columns:1.2fr 1fr; align-items:center;
+      margin: 18px 0 28px;
+    }
+    @media (max-width: 980px){ .hero{ grid-template-columns:1fr } }
+    .hero h1{ margin:0 0 10px; font-size:clamp(26px, 4.2vw, 44px) }
+    .hero p{ margin:0 0 14px; color:var(--muted); font-size:clamp(14px, 1.8vw, 17px) }
+    .cta{ display:flex; gap:12px; flex-wrap:wrap; margin-top:10px }
+    .btn{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:10px 14px; border-radius:12px; text-decoration:none; font-weight:600;
+      box-shadow:var(--shadow); border:1px solid var(--ring);
+      background:linear-gradient(180deg, var(--card), var(--card));
+      color:var(--text);
+    }
+    .btn.primary{ background:linear-gradient(180deg, #4c5bd6, #3f51b5); color:#fff; border-color:transparent }
+    .btn:hover{ transform:translateY(-1px) scale(1.01); transition:.15s ease }
+
+    .hero .preview{
+      border:1px solid var(--ring); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow);
+      display:grid; grid-template-columns:1fr; background:var(--ring);
+      min-height:240px;
+    }
+    .hero .pane{ position:relative; background:#0d1117; display:flex; align-items:center; justify-content:center; }
+    .hero .pane img{ width:100%; height:100%; object-fit:contain; background:#0d1117 }
+
+    /* 提示标签：原图/重建 —— 字体更大 */
+    .tag{
+      position:absolute; top:10px; left:10px; padding:6px 10px;
+      font-size:14px; /* 从 12px 调大 */
+      line-height:1; letter-spacing:.4px;
+      color:var(--tag-text); background:var(--tag-bg);
+      border-radius:10px; user-select:none;
+      backdrop-filter:saturate(140%) blur(4px);
+    }
+
+    /* 🎯 新增：项目简介卡片 */
+    .intro{
+      margin: 8px 0 28px;
+    }
+    .intro-card{
+      position:relative;
+      border-radius:20px;
+      overflow:hidden;
+      border:1px solid var(--ring);
+      box-shadow:var(--shadow);
+      background:
+        radial-gradient(1000px 400px at -5% -30%, rgba(76,91,214,.12), transparent 60%),
+        radial-gradient(1000px 400px at 105% 130%, rgba(106,123,232,.10), transparent 60%),
+        linear-gradient(180deg, var(--card), var(--card));
+      padding: clamp(18px, 3.2vw, 34px);
+    }
+    .intro-badge{
+      position:absolute; top:14px; right:14px;
+      padding:6px 10px; font-size:12px; color:#fff; border-radius:999px;
+      background:linear-gradient(135deg, var(--brand), var(--brand-2));
+      box-shadow:0 4px 16px rgba(63,81,181,.25);
+      user-select:none;
+    }
+    .intro-content{
+      display:grid; gap:18px; grid-template-columns: 1.15fr 1fr; align-items:center;
+    }
+    @media (max-width: 980px){ .intro-content{ grid-template-columns:1fr } }
+    .intro h2{
+      margin:0 0 6px;
+      font-size: clamp(20px, 3.2vw, 28px);
+      letter-spacing:.2px;
+    }
+    .intro p.lead{
+      margin: 6px 0 10px;
+      color: var(--muted);
+      font-size: clamp(14px, 1.8vw, 17px);
+    }
+    .intro-points{
+      display:grid; gap:10px;
+    }
+    .intro-point{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:10px 12px; border-radius:12px;
+      border:1px dashed var(--ring);
+      background:linear-gradient(180deg, rgba(0,0,0,.02), transparent);
+    }
+    .intro-point .dot{
+      width:10px; height:10px; border-radius:50%;
+      background:linear-gradient(135deg, var(--brand), var(--brand-2));
+      margin-top:6px; flex:0 0 auto;
+      box-shadow:0 0 0 3px rgba(63,81,181,.08);
+    }
+    .intro-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:6px }
+    .btn.ghost{
+      background:transparent; border:1px solid var(--ring);
+    }
+
+    /* 对比网格 */
+    .grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:var(--gap); margin-top:18px }
+    @media (max-width: 900px){ .grid{ grid-template-columns:1fr } }
+    figure.compare{
+      margin:0; background:linear-gradient(180deg, var(--card), var(--card)) padding-box;
+      border:1px solid var(--ring); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+    }
+    .pair{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--ring) }
+    .pane{ position:relative; background:#0d1117; min-height:clamp(160px, 22vw, 280px);
+           display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .pane img{ width:100%; height:100%; object-fit:contain; background:#0d1117 }
+
+    /* 类别标题：更大并居中 */
+    figcaption{
+      padding:var(--pad);
+      font-size:16px;        /* 从 14px 调大 */
+      font-weight:600;
+      color:var(--muted);
+      text-align:center;     /* 居中 */
+      border-top:1px solid var(--ring);
+      background:linear-gradient(180deg, transparent, rgba(0,0,0,.01));
+    }
+
+    /* 页脚 */
+    footer{
+      border-top:1px solid var(--ring); color:var(--muted);
+      padding:18px 16px; text-align:center; background:transparent;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部导航 -->
+  <div class="topbar">
+    <div class="inner">
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2l7 4v6l-7 4-7-4V6l7-4z" fill="white" opacity=".9"/>
+        </svg>
+        <span>3D Shape Tokenization</span>
+      </div>
+      <nav class="nav">
+        <a href="./">首页</a>
+        <a href="report/">实验报告</a>
+        <a href="guide/">复现指南</a>
+        <a href="bg/">背景知识</a>
+        <!-- <a href="code/">代码结构</a> -->
+        <!-- GitHub 图标按钮 -->
+        <a class="icon" href="https://github.com/Sy-SU/3D-Shape-Tokenization" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 .5a11.5 11.5 0 0 0-3.64 22.42c.58.11.79-.25.79-.55v-2.1c-3.22.7-3.9-1.39-3.9-1.39-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.76.41-1.27.74-1.56-2.57-.29-5.27-1.29-5.27-5.76 0-1.27.46-2.31 1.2-3.13-.12-.29-.52-1.46.11-3.04 0 0 .98-.31 3.2 1.19a11.1 11.1 0 0 1 5.82 0c2.22-1.5 3.2-1.19 3.2-1.19.63 1.58.23 2.75.11 3.04.75.82 1.2 1.86 1.2 3.13 0 4.49-2.71 5.46-5.29 5.75.42.36.79 1.08.79 2.19v3.24c0 .3.21.67.8.55A11.5 11.5 0 0 0 12 .5z"/>
+          </svg>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <!-- Hero -->
+    <section class="hero">
+      <div>
+        <h1>面向 3D 形状的 Tokenization 与流匹配生成</h1>
+        <p>这里展示项目概览、重建可视化与关键文档入口。点击下方按钮快速开始或查看实验报告。</p>
+        <div class="cta">
+          <a class="btn primary" href="report/">📄 实验报告</a>
+          <a class="btn" href="guide/">🚀 快速开始</a>
+          <a class="btn" href="https://github.com/Sy-SU/3D-Shape-Tokenization" target="_blank" rel="noopener">⭐ GitHub</a>
+        </div>
+      </div>
+      <div class="preview">
+        <div class="pane">
+          <img src="assets/growth.gif">
+          <span class="tag">重建过程</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 🌈 新增：项目简介卡片 -->
+    <section class="intro">
+      <div class="intro-card">
+        <span class="intro-badge">About</span>
+        <div class="intro-content">
+          <div>
+            <h2>项目简介</h2>
+            <p class="lead">
+              本项目复现并探索 <b>3D Shape Tokenization</b> 与 <b>Flow Matching</b> 在点云上的建模与生成能力，
+              内容覆盖背景知识、实验报告与复现指南，并提供可视化。
+            </p>
+            <div class="intro-points">
+              <div class="intro-point">
+                <span class="dot"></span>
+                <div>点云表征与 Tokenization：构建紧凑离散表示，支撑下游生成与重建。</div>
+              </div>
+              <div class="intro-point">
+                <span class="dot"></span>
+                <div>Latent Flow Matching：在潜空间进行稳定的连续时间建模与采样。</div>
+              </div>
+              <div class="intro-point">
+                <span class="dot"></span>
+                <div>可复现实验：提供从环境、数据到训练/评测的完整流程。</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <!-- 右侧也可以放一张概览图/流程图；你有的话替换下面这张即可 -->
+            <div style="border:1px solid var(--ring);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:#ffffff;display:flex;align-items:center;justify-content:center;min-height:220px;padding:8px;">
+              <img src="assets/sphere_vis.png" alt="overview" style="max-width:100%;max-height:320px;object-fit:contain;">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 可视化对比网格 -->
+    <section class="grid">
+      <figure class="compare">
+        <div class="pair">
+          <div class="pane">
+            <img src="assets/00016_000_gt.gif" alt="airplane 原图" loading="lazy">
+            <span class="tag">原图</span>
+          </div>
+          <div class="pane">
+            <img src="assets/00016_000_recon.gif" alt="airplane 重建" loading="lazy">
+            <span class="tag">重建</span>
+          </div>
+        </div>
+        <figcaption>飞机</figcaption>
+      </figure>
+
+      <figure class="compare">
+        <div class="pair">
+          <div class="pane">
+            <img src="assets/00030_000_gt.gif" alt="table 原图" loading="lazy">
+            <span class="tag">原图</span>
+          </div>
+          <div class="pane">
+            <img src="assets/00030_000_recon.gif" alt="table 重建" loading="lazy">
+            <span class="tag">重建</span>
+          </div>
+        </div>
+        <figcaption>桌子</figcaption>
+      </figure>
+
+      <figure class="compare">
+        <div class="pair">
+          <div class="pane">
+            <img src="assets/00042_000_gt.gif" alt="ashcan 原图" loading="lazy">
+            <span class="tag">原图</span>
+          </div>
+          <div class="pane">
+            <img src="assets/00042_000_recon.gif" alt="ashcan 重建" loading="lazy">
+            <span class="tag">重建</span>
+          </div>
+        </div>
+        <figcaption>垃圾桶</figcaption>
+      </figure>
+
+      <figure class="compare">
+        <div class="pair">
+          <div class="pane">
+            <img src="assets/00048_000_gt.gif" alt="chair 原图" loading="lazy">
+            <span class="tag">原图</span>
+          </div>
+          <div class="pane">
+            <img src="assets/00048_000_recon.gif" alt="chair 重建" loading="lazy">
+            <span class="tag">重建</span>
+          </div>
+        </div>
+        <figcaption>椅子</figcaption>
+      </figure>
+    </section>
+  </main>
+
+  <footer>
+    © 2025 Sy-SU. Released under the MIT License.
+  </footer>
+</body>
+</html>

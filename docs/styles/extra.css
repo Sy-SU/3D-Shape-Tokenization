@@ -1,0 +1,32 @@
+/* docs/styles/extra.css */
+.mdx-hero {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 960px) {
+  .mdx-hero { grid-template-columns: 1.2fr 1fr; align-items: center; }
+}
+.mdx-hero__image img { max-width: 100%; border-radius: 12px; }
+
+.project-intro {
+  padding: 2rem 0;
+}
+
+.intro-card {
+  background: var(--md-default-bg-color);
+  border-radius: 12px;
+  box-shadow: var(--md-shadow-z2);
+  padding: 2rem;
+  text-align: center;
+}
+
+.intro-card h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.intro-card p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
