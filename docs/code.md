@@ -45,3 +45,11 @@ class FourierPositionalEncoding3D(nn.Module):
 
         return encoding
 ```
+
+## Shape Tokenizer
+
+> Shape Tokenizer 共含有 5687 万可训练参数
+
+## Velocity Estimator
+
+> Velocity Estimator 共含有 1919 万可训练参数
