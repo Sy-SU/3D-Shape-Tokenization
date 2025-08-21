@@ -66,30 +66,8 @@ def run_one_epoch(tokenizer: ShapeTokenizer,
         # Step 2: 获取每个样本的 latent shape token (Tensor[B, K, D])
         shape_tokens = tokenizer(pointclouds)
 
-        # print(f"shape token 的 shape : {shape_tokens.shape}")
-
-        # # Step 3: 构造每个样本的 (x0, x1, t) 并计算中间点 x_t
-        # # x0: 噪声点 ∈ Uniform([-1, 1]^3), shape: [B, 3]
-        # x0 = torch.rand(B, 3, device=device) * 2 - 1
-        # idx = torch.randint(0, N, size=(B,), device=device)
-        # x1 = pointclouds[torch.arange(B), idx, :]
-        # t = torch.rand(B, device=device)
-        # x_t = (1 - t.unsqueeze(1)) * x0 + t.unsqueeze(1) * x1
-
-        # # print(f"x_t 的 shape : {x_t.shape}") # 表示空间位置
-        # # print(f"t 的 shape : {t.shape}") # 表示流匹配时间 t
-
-        # # Step 4: 使用 velocity estimator 预测 v_theta(x_t; s, t)
-        # v_pred = estimator(x_t, shape_tokens, t)
-        # # Step 5: 计算 Flow Matching Loss
-        # target_v = x1 - x0
-        # loss_flow = nn.functional.mse_loss(v_pred, target_v)
-        
-        
-        # Step 3: 多点采样 M 个目标点，并计算中间点 x_t
-        # 维度约定：
-        #   pointclouds: [B, N, 3]
-        #   shape_tokens: [B, K, D]  （整形状的 latent，不随点而变）
+        # Step 3: 构造每个样本的 (x0, x1, t) 并计算中间点 x_t
+        # x0: 噪声点 ∈ Uniform([-1, 1]^3), shape: [B, 3]
         M = min(fm_M, N)  # 防止 M > N
 
         # 3.1 随机挑 M 个真实点作为 x1，并为每个目标点生成独立噪声 x0 与时间 t

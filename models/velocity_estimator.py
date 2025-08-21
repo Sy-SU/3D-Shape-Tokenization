@@ -86,12 +86,6 @@ class CrossAttentionBlock(nn.Module):
         k_proj = self.rmsnorm_k(self.linear_k(kv_input))       # [B, k, d]
         v_proj = self.linear_v(kv_input)                       # [B, k, d]
 
-        # print(f"q_proj 的维度 : {q_proj.shape}")
-        # print(f"k_proj 的维度 : {k_proj.shape}")
-        # print(f"v_proj 的维度 : {v_proj.shape}")
-        # print(f"特征数量 k = {k}")
-        # print(self.head_dim)
-
         # 2. Reshape to multi-head
         q_proj = q_proj.contiguous().view(B, self.n_heads, 1, self.head_dim)     # [B, h, 1, d_h]
         k_proj = k_proj.contiguous().view(B, self.n_heads, k, self.head_dim)     # [B, h, k, d_h]
@@ -231,18 +225,12 @@ class VelocityEstimatorBlock(nn.Module):
 
         # Gating 1（乘以 sigmoid）
         gate1 = torch.sigmoid(self.gate1(t_emb))
-        # print(f"attn_out 的维度 {attn_out.shape}")
-        # print(f"gate1 的维度 {gate1.shape}")
+
         h = attn_out * gate1                   # [B, d_f]
 
         # 与 x_norm 残差连接
         h = h + x_norm                         # [B, d_f]
 
-        # print(f"t_emb 的维度 {t_emb.shape}")
-        # print(f"h 的维度 {h.shape}")
-
-        # LayerNorm 后进行 shift2, scale2, gate2 调制
-        # h2 = self.layernorm2(h, t_emb)               # [B, d]
         shift2 = self.shift2(t_emb)            # [B, d_f]
         scale2 = self.scale2(t_emb)            # [B, d_f]
         h2 = self.layernorm2(h, t_emb)
@@ -295,21 +283,3 @@ class VelocityEstimator(nn.Module):
 
         v = self.final(h)                  # [B, 3]
         return v
-
-
-# ========== Unit Test ==========
-if __name__ == "__main__":
-    # 测试 VelocityEstimator 是否能正常 forward
-    B, k, d = 4, 16, 512
-    pe_dim = 3 + 3 * 2 * 16  # 与 pos_encoder 一致
-
-    x = torch.randn(B, 3)              # 原始点
-    s = torch.randn(B, k, d)          # shape tokens
-    t = torch.rand(B)                 # 时间 t ∈ [0, 1]
-
-    model = VelocityEstimator(d=d, num_frequencies=16, n_blocks=3)
-    v = model(x, s, t)                # [B, 3]
-
-    print("Output shape:", v.shape)
-    assert v.shape == (B, 3), "VelocityEstimator 输出维度应为 [B, 3]"
-    print("✅ VelocityEstimator 单元测试通过！")
