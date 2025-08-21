@@ -3,18 +3,18 @@
 功能：
 - 遍历指定目录下的 *_recon.npy 和 *_gt.npy 文件
 - 对比每个样本的重建点云和真实点云
-- 保存静态图（.png）和动态旋转图（.gif）
-- 图像中标注 Chamfer Distance
+- 仅保存动态旋转图（.gif），并在标题中标注 Chamfer Distance
 
-输出路径：outs/vis_compare/
+输出路径：outs/vis_compare/<timestamp>/
 """
 
 import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 from matplotlib import animation
+import random
 
 
 # ========== Chamfer Distance ==========
@@ -33,20 +33,6 @@ def chamfer_distance_numpy(x: np.ndarray, y: np.ndarray) -> float:
     cd = np.mean(np.min(dist, axis=1)) + np.mean(np.min(dist, axis=0))
     return float(cd)
 
-
-# ========== 可视化函数 ==========
-def plot_point_cloud(ax, points, title):
-    """
-    在给定的 3D 轴上绘制点云。
-    参数:
-        ax: matplotlib 3D 轴对象
-        points: [N, 3] numpy array
-        title: 子图标题
-    """
-    ax.scatter(points[:, 0], points[:, 1], points[:, 2], s=1)
-    ax.set_title(title)
-    ax.set_axis_off()
-    ax.view_init(elev=20, azim=30)
 
 # ========== 动图生成函数 ==========
 def save_rotation_gif(points, filename, title):
@@ -67,6 +53,7 @@ def save_rotation_gif(points, filename, title):
     anim.save(filename, writer='pillow', dpi=150)
     plt.close(fig)
 
+
 # ========== 主函数：对比重建和GT ==========
 def visualize_recon_vs_gt(npy_dir, out_dir="outs/vis_compare", max_batches=10):
     """
@@ -74,11 +61,17 @@ def visualize_recon_vs_gt(npy_dir, out_dir="outs/vis_compare", max_batches=10):
     参数:
         npy_dir: 保存 .npy 文件的目录
         out_dir: 保存可视化图像的目录
-        max_batches: 最多可视化的 batch 数量
+        max_batches: 最多可视化的 batch 数量；-1 表示全部
     """
     os.makedirs(out_dir, exist_ok=True)
 
-    files = sorted(f for f in os.listdir(npy_dir) if f.endswith("_recon.npy"))[:max_batches]
+    files = sorted(f for f in os.listdir(npy_dir) if f.endswith("_recon.npy"))
+
+    random.seed(20040303)
+    random.shuffle(files)
+
+    if max_batches != -1:
+        files = files[:max_batches]
 
     for f in files:
         batch_id = f[:5]
@@ -86,7 +79,7 @@ def visualize_recon_vs_gt(npy_dir, out_dir="outs/vis_compare", max_batches=10):
         gt_path = os.path.join(npy_dir, f"{batch_id}_gt.npy")
 
         if not os.path.exists(gt_path):
-            print(f"Missing GT for {f}, skipping...")
+            print(f"⚠️ Missing GT for {f}, skipping...")
             continue
 
         recon = np.load(recon_path)  # [B, N, 3]
@@ -102,36 +95,21 @@ def visualize_recon_vs_gt(npy_dir, out_dir="outs/vis_compare", max_batches=10):
         for i in range(B):
             cd = chamfer_distance_numpy(recon[i], gt[i])
 
-            fig = plt.figure(figsize=(8, 4))
-            ax1 = fig.add_subplot(121, projection='3d')
-            plot_point_cloud(ax1, gt[i], title="Ground Truth")
-            ax2 = fig.add_subplot(122, projection='3d')
-            plot_point_cloud(ax2, recon[i], title=f"Reconstruction\nCD = {cd:.6f}")
-
-            # 静态对比图：仍然一张 PNG
-            png_path = os.path.join(out_dir, f"{batch_id}_{i:03d}.png")
-            plt.savefig(png_path, dpi=300)
-            plt.close(fig)
-
-            # === 新增 ===
-            # 为 GIF 分别保存 recon 与 gt 两个文件
+            # 保存 GIF：重建 & GT
             recon_gif_path = os.path.join(out_dir, f"{batch_id}_{i:03d}_recon.gif")
             gt_gif_path    = os.path.join(out_dir, f"{batch_id}_{i:03d}_gt.gif")
 
-            # 动图：重建 & GT
             save_rotation_gif(recon[i], recon_gif_path, title=f"Reconstruction\nCD = {cd:.6f}")
             save_rotation_gif(gt[i],    gt_gif_path,    title="Ground Truth")
 
-            print(f"✅ Saved: {png_path}, {recon_gif_path}, {gt_gif_path}")
+            print(f"✅ Saved: {recon_gif_path}, {gt_gif_path}")
 
 
 # ========== 命令行入口 ==========
 if __name__ == '__main__':
-    # python tools/visualize_recon_vs_gt.py 20250803_161624 --max_batches 5
-
     parser = argparse.ArgumentParser(description="可视化 Shape 重建结果与 GT 对比图像")
     parser.add_argument("timestamp", type=str, help="指定重建结果的时间戳子目录")
-    parser.add_argument("--max_batches", type=int, default=10, help="最多可视化的 batch 数量")
+    parser.add_argument("--max_batches", type=int, default=10, help="最多可视化的 batch 数量，-1 表示全部")
     args = parser.parse_args()
 
     input_dir = os.path.join("outs/reconstruct", args.timestamp)
