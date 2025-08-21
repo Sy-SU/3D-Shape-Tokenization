@@ -109,16 +109,14 @@ Shape Tokenizer 的整体结构如下图：
    初始化 $k$ 个 $d_f$ 维的 token，记作 $T^{(0)} \in \mathbb{R}^{k \times d_f}$，在训练中更新。
 
 4. **Cross Attention Block**
-
-   * Query: 当前 tokens $T^{(l)}$
-   * Key/Value: 点特征 $F$
-   * 作用：提取全局几何信息，将点云特征聚合到 tokens。
+   - Query: 当前 tokens $T^{(l)}$
+   - Key/Value: 点特征 $F$
+   - 作用：提取全局几何信息，将点云特征聚合到 tokens。
 
 5. **Self Attention Block**
-
-   * Query/Key/Value: tokens 自身
-   * 作用：建模 token 间依赖关系，增强上下文信息。
-   * 每次迭代结构为：Cross Attention → Self Attention ×2。
+   - Query/Key/Value: tokens 自身
+   - 作用：建模 token 间依赖关系，增强上下文信息。
+   - 每次迭代结构为：Cross Attention → Self Attention ×2。
 
 6. **堆叠结构**
    将 Cross + Self Attention Block 组成的 **TokenBlock** 堆叠 6 次，逐步细化 Shape Token 的表示。
@@ -133,7 +131,6 @@ Shape Tokenizer 的整体结构如下图：
 **Velocity Estimator** 是模型的**解码器**，目标是利用 Shape Tokens 恢复原始 3D 形状。它的本质是学习一个**速度场** $v_\theta(x; s, t)$，描述点 $x$ 在时间 $t$ 下的运动方向。
 
 - **输入**：
-
   1. Shape Tokenizer 编码的 $k \times d$ 维 Shape Tokens $s$；
   2. 点的 Fourier 位置编码 $x_{emb} \in \mathbb{R}^{d'}$；
   3. 时间步的 Fourier 位置编码 $t_{emb} \in \mathbb{R}^{d''}$。
@@ -166,7 +163,6 @@ Velocity Estimator 的整体结构如下图：
    使得模型能感知“在不同时间步，点应该如何移动”。
 
 4. **Cross Attention 与 Shape Tokens**
-
    - Query：调制后的 $x_{emb}$；
    - Key/Value：Shape Tokens $s$；
    - 作用：融合形状全局特征，引导点 $x$ 的运动。
@@ -212,7 +208,6 @@ $$
 
 1. 设时间步之间的间隔为 $h = \dfrac{1}{\text{steps}}$；
 2. 对于每一个时间步 $t$：
-
    * 计算 $v_1 = v_{\theta}(x_t; s, t)$；
    * 更新临时点 $\tilde{x} \leftarrow x_t + h \cdot v_1$；
    * 计算 $v_2 = v_{\theta}(\tilde{x}; s, t+h)$；
