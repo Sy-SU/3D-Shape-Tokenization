@@ -283,6 +283,41 @@ $$
 
 ## 4. 实验结果
 
+### 4.1 在 Chair 数据集上的拟合情况
+
+我们首先在 Chair 数据集上测试了模型的表现。
+
+超参数设置如下：
+
+```json
+"config": {
+   "batch_size": 32,
+   "num_points": 2048,
+   "epochs": 1000,
+   "lr": 0.4,
+   "weight_decay": 0.0,
+   "d_f": 512,
+   "d": 64,
+   "num_tokens": 32,
+   "kl_weight": 0.001,
+   "kl_prior_weight": 0.0001,
+   "data_root": "/root/autodl-fs/chair",
+   "patience": 15,
+   "warmup_steps": 4000,
+   "fm_M": 64
+}
+```
+
+训练过程中，采用 Flow Matching Loss + KL 正则项 作为目标函数，学习率使用 Transformer 风格的 warmup 调度策略，warmup 步数为 4000。最终在 第 98 个 epoch 停止训练。
+
+我们利用保存的最佳模型参数，在测试集上进行了重建实验，采用 Chamfer Distance 作为主要指标，点数固定为 2048。
+
+| 方法         | Latent 维度 | CD (×10⁻³)   |
+|:------------:|:-----------:|:------------:|
+| 本实验(Chair)| 32×64       | X.XX         |
+
+
+
 ## 5. 分析与讨论
 
 ## 参考与声明

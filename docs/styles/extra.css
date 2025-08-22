@@ -30,3 +30,11 @@
   font-size: 1.1rem;
   line-height: 1.6;
 }
+
+.table-center .md-typeset__table {
+  display: flex;
+  justify-content: center;
+}
+.table-center .md-typeset__table table {
+  width: auto;
+}
