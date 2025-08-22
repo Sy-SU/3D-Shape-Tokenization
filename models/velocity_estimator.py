@@ -187,7 +187,7 @@ class VelocityEstimatorBlock(nn.Module):
     def __init__(self, d, d_f, pe_dim):
         super().__init__()
         self.point_proj = nn.Linear(pe_dim, d_f)
-        self.layernorm1 = AdaLayerNorm(d_f, d_f)
+        self.layernorm1 = nn.LayerNorm(d_f)
         self.shift1 = nn.Linear(d, d_f)
         self.scale1 = nn.Linear(d, d_f)
         self.gate1 = nn.Linear(d, d_f)
@@ -215,7 +215,7 @@ class VelocityEstimatorBlock(nn.Module):
         """
         # 调制 query
         x_proj = self.point_proj(x_pe)         # [B, d_f]
-        x_norm = self.layernorm1(x_proj, x_proj)       # [B, d_f]
+        x_norm = self.layernorm1(x_proj)       # [B, d_f]
         shift1 = self.shift1(t_emb)            # [B, d_f]
         scale1 = self.scale1(t_emb)            # [B, d_f]
         query = x_norm * (1 + scale1) + shift1  # [B, d_f]
