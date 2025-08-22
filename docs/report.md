@@ -310,15 +310,46 @@ $$
 
 训练过程中，采用 Flow Matching Loss + KL 正则项 作为目标函数，学习率使用 Transformer 风格的 warmup 调度策略，warmup 步数为 4000。最终在 第 98 个 epoch 停止训练。
 
-我们利用保存的最佳模型参数，在测试集上进行了重建实验，采用 Chamfer Distance 作为主要指标，点数固定为 2048。
+我们利用保存的最佳模型参数，在测试集上进行了重建实验，采用 Chamfer Distance 作为主要指标，点数固定为 2048。重建的平均误差为 $1.44 \times 10^{-3}$。
 
-| 方法         | Latent 维度 | CD (×10⁻³)   |
-|:------------:|:-----------:|:------------:|
-| 本实验(Chair)| 32×64       | X.XX         |
+![alt text](assets/00003_003_recon.gif){ width=400px } ![alt text](assets/00047_002_recon.gif){ width=400px }
 
+![alt text](assets/00072_000_recon.gif){ width=400px } ![alt text](assets/00244_002_recon.gif){ width=400px }
+
+可以看出，模型能够生成出不同类型的椅子。
+
+### 4.2 在 Demo 数据集上的分类情况
+
+由于 Demo 数据集相比 Chair 数据集较大，在评估时，我们并没有进行所有测试集的重建任务。但是，通过[可视化结果](index.html)，我们可以看出，模型同样可以拟合多种类的点云。
 
 
 ## 5. 分析与讨论
+
+### 5.1 原实验分析
+
+在原实验中，我们实现了在 Chair 数据集与更大的、包含 4 种物品类别的数据集上的拟合任务。从可视化结果表明，模型能够根据不同类型的物体提取不同的 Shape Token，通过 Shape Token 引导 Flow Matching，生成出与原始点云形状相近的点云。
+
+此外，通过观察可视化结果，我们发现在一些例如椅子腿等精细细节上，模型重建的精度仍然不够理想。这可能是由于 Shape Token 对 3D 形状的表达不够充分，导致在 Flow Matching 的过程中，Shape Token 无法起到精确引导的作用。
+
+### 5.2 3D-CLIP
+
+#### 5.2.1 CLIP
+
+CLIP 利用对比学习同时训练一个图像编码器和一个文本编码器，去尽可能最大化相关样本的相似度，同时最小化不相关样本的相似度。一般，我们使用 Transformer 的 Encoder 部分作为文本编码器，使用 ResNet-50 或者 ViT 作为图像编码器。
+
+![CLIP](assets/clip.png)
+
+在进行 zero-shot 分类任务时，CLIP 会将图像的嵌入和文本的嵌入进行比对，选择相似度最高的文本嵌入。
+
+![cls](assets/cls.png)
+
+#### 5.2.2 3D-CLIP
+
+在 CLIP 的基础上，我们希望实现对 3D 形状的 zero-shot 分类。在前文提到，我们的 Shape Tokenizer 相当于一个 Encoder。这个 3D 形状的 Encoder 可以把点云编码到潜在空间。**但是，我们并不能直接把作为 Image Encoder 的 ResNet-50 或者 ViT 替换为我们的 Shape Tokenizer**，即使它们的作用都是把图像或者文本编码为向量，这是因为预训练的 CLIP 中的潜在空间与我们训练的潜在空间并不一致。
+
+训练 CLIP 是困难的，我们考虑增加一个 MLP，去把 Shape Tokenizer 输出的 Shape Token 映射到和 CLIP 相统一的潜在空间中。我们只需要训练这个 MLP，以实现 Shape Tokens 和 CLIP 中文本嵌入的语义对齐。
+
+![3dclip](assets/3dclip.png)
 
 ## 参考与声明
 
