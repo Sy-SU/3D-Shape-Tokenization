@@ -1,138 +1,132 @@
-# 3D-Shape-Tokenization-Repro
 
-本项目是关于 3D Shape Tokenization 的复现工作，旨在通过 Latent Flow Matching 方法对 3D 形状进行编码和解码。
+# 复现指南
 
----
+## 1. 实验环境
 
-## 📁 项目结构
+* **硬件环境**
 
-```
-./
-├── .gitignore
-├── LICENSE
-├── README.md
-├── checkpoints                           # 模型权重
-│   ├── best_estimator.pt                 
-│   └── best_tokenizer.pt
-├── configs
-│   └── label.json                        # 数据集中子目录对应的类别
-├── data
-│   └── taxonomy.json                     # 原始数据集类别标签
-├── datasets
-│   ├── __init__.py
-│   └── dataloader.py
-├── eval.py
-├── models
-│   ├── __init__.py
-│   ├── shape_tokenizer.py
-│   └── velocity_estimator.py
-├── requirements.txt
-├── tools
-│   ├── eval_reconstruct.py               # 重建评估脚本
-│   ├── train.py                          # 训练脚本
-│   └── visualize.py                      # 可视化脚本
-└── utils
-    ├── __init__.py
-    └── utils.py
-```
+    * GPU：NVIDIA RTX 4090 (24GB) × 1
+    * CPU：25 vCPU Intel(R) Xeon(R) Platinum 8481C
+    * 内存：90 GB
+    * 硬盘：系统盘 30GB，数据盘 50GB SSD
+
+* **软件环境**
+
+    * OS：Ubuntu 22.04
+    * Python：3.12
+    * PyTorch：2.3.0
+    * CUDA：12.1
 
 ---
 
-## 🧠 模型简介
-
-本项目复现了 Latent Flow Matching 方法，用于对 3D 形状进行编码和解码。具体来说，我们使用一个形状编码器将 3D 形状编码为潜在表示，然后使用一个速度估计器将潜在表示解码为形状的速度。这种方法可以有效地捕捉形状的动态特性，并在重建过程中保持形状的连续性和一致性。
-
----
-
-## 📈 实验结果
-
-TODO
-
----
-
-
-## 🚀 快速开始
-
-### 1. 克隆仓库
+## 2. 克隆仓库
 
 ```bash
+# HTTPS
+git clone https://github.com/Sy-SU/3D-Shape-Tokenization.git
+
+# 或 SSH（需提前配置 SSH Key）
 git clone git@github.com:Sy-SU/3D-Shape-Tokenization.git
-cd 3D-Shape-Tokenization
 ```
 
-### 2. 安装依赖
+进入项目目录：
+
+```bash
+cd 3D-Shape-Tokenization/
+```
+
+---
+
+## 3. 安装依赖
+
+建议在虚拟环境中安装依赖：
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. 准备数据
-
-使用 ShapeNetCore.v2.PC15k 作为数据集, 下载链接: https://drive.google.com/drive/folders/1MMRp7mMvRj8-tORDaGTJvrAeCMYTWU2j
-
-将数据集解压到 `data/` 目录下，目录结构如下：
-
-```
-./
-├── data
-│   ├── ShapeNetCore.v2.PC15k
-│   │   ├── 02691156
-```
-
-### 4. 训练模型
+如需加速：
 
 ```bash
-chmod +x scripts/train.sh
-scripts/train.sh
-```
-
-### 5. 评估模型
-
-```bash
-chmod +x scripts/eval.sh
-scripts/eval.sh
-```
-
-### 6. 可视化
-
-```bash
-chmod +x scripts/visualize.sh
-scripts/visualize.sh demo
+pip install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt
 ```
 
 ---
 
-## ⚙️ 配置说明 (TODO)
+## 4. 数据准备
 
-示例 `config.yaml`：
+将 ShapeNetCore.v2.PC15k 或子集解压至数据盘，例如：
 
-```yaml
-model:
-  name: resnet18
-  pretrained: true
+```
+/root/autodl-fs/chair/
+/root/autodl-fs/demo/
+```
 
-train:
-  epochs: 50
-  batch_size: 64
-  lr: 0.001
+目录结构示例：
 
-data:
-  dataset: CIFAR10
-  path: ./data
+```
+chair/
+  ├── train/*.npy
+  ├── val/*.npy
+  └── test/*.npy
 ```
 
 ---
 
-## 📊 实验结果 (TODO)
+## 5. 训练
 
+项目提供统一入口脚本 `scripts/task.sh`。使用前先授予执行权限：
 
+```bash
+chmod +x ./scripts/task.sh
+```
+
+### 示例一：在 Chair 数据集上训练
+
+```bash
+./scripts/task.sh --data_root /root/autodl-fs/chair --timestamp chair_run_001 --max_batches -1
+```
+
+### 示例二：在 Demo 数据集上训练
+
+```bash
+./scripts/task.sh --data_root /root/autodl-fs/demo --timestamp demo_run_001 --max_batches -1
+```
+
+参数说明：
+
+* `--data_root`：数据集路径
+* `--timestamp`：运行标识，用于区分实验结果
+* `--max_batches`：最大训练批次数，`-1` 表示不限制
 
 ---
 
-## 🛠️ TODO
+## 6. 评估与可视化
 
-* [x] 基本训练脚本
-* [ ] 完成基本调参, 实现完整的训练流程, 发布模型权重
-* [ ] 支持 TensorBoard
-* [ ] 将模型与 3d-CLIP 结合
+在训练完成后，可以运行提供的脚本进行评估和可视化。
 
+### 评估模型
+
+```bash
+chmod +x ./scripts/eval.sh
+./scripts/eval.sh --data_root '/root/autodl-fs/chair' --timestamp chair_eval_001
+```
+
+### 可视化结果
+
+```bash
+chmod +x ./scripts/visualize.sh
+./scripts/visualize.sh --data_root '/root/autodl-fs/chair' --timestamp chair_vis_001
+```
+
+### 重建过程可视化
+
+你还可以直接生成逐步的重建可视化结果：
+
+```bash
+python tools/integration.py --data_root '/root/autodl-fs/chair'
+```
+
+> 输出的点云结果会保存到 `outs/` 目录下，包含重建可视化和日志文件。
+
+---
